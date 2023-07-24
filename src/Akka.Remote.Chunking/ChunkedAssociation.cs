@@ -84,7 +84,7 @@ internal sealed class ChunkedAssociationOwner : ReceiveActor
     private readonly IAssociationEventListener _listener;
     private readonly AssociationHandle _originalHandle;
     private readonly int _maxChunkSize;
-    private bool _isInboundParty;
+    private readonly bool _isInboundParty;
 
     private IActorRef _consumer; // the consumer actor
     private IActorRef _consumerController; // consumer controller
@@ -117,6 +117,14 @@ internal sealed class ChunkedAssociationOwner : ReceiveActor
             ConsumerController.Create<byte[]>(Context, Option<IActorRef>.None, consumerSettings);
         _consumerController = Context.ActorOf(consumerControllerProps, ConsumerControllerName);
         _consumerController.Tell(new ConsumerController.Start<byte[]>(_consumer));
+
+        if (_isInboundParty)
+        {
+            // compute the address of the ProducerController<byte> on the other side and register it with this consumer
+            var producerControllerPath = ComputeRemoteControllerPath(_originalHandle.LocalAddress,
+                _originalHandle.RemoteAddress, _manager, ProducerControllerName);
+            Context.ActorSelection(producerControllerPath).Tell(new ProducerController.RegisterConsumer<byte[]>(_consumerController));
+        }
     }
 
     private void CreateAndStartProducerController()
