@@ -16,7 +16,9 @@ namespace Akka.Remote.Chunking
     /// <summary>
     /// INTERNAL API
     ///
-    /// 
+    /// Responsible for managing chunking transport adapters for each connection.
+    ///
+    /// One of these exists per <see cref="ActorSystem"/>.
     /// </summary>
     internal sealed class ChunkingTransportManager : ActorTransportAdapterManager
     {
@@ -27,7 +29,7 @@ namespace Akka.Remote.Chunking
             _wrappedTransport = wrappedTransport;
         }
         
-        private static Address NakedAddress(Address address)
+        internal static Address NakedAddress(Address address)
         {
             return address.WithProtocol(string.Empty)
                 .WithSystem(string.Empty);
@@ -182,8 +184,9 @@ namespace Akka.Remote.Chunking
             wrappedTransport, system)
         {
         }
-
-        internal static readonly SchemeAugmenter SCHEME = new SchemeAugmenter("chunk");
+        
+        internal const string SchemeIdentifier = "chunk";
+        internal static readonly SchemeAugmenter SCHEME = new SchemeAugmenter(SchemeIdentifier);
         private static readonly AtomicCounter UniqueId = new(0);
 
         protected override SchemeAugmenter SchemeAugmenter => SCHEME;
