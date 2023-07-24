@@ -4,6 +4,7 @@
   </PropertyGroup>
   <!-- App dependencies -->
   <ItemGroup>
+    <PackageVersion Include="Akka.Remote" Version="1.5.9" />
     <PackageVersion Include="Akka.Remote.Hosting" Version="1.5.8.1" />
   </ItemGroup>
   <!-- Test dependencies -->
