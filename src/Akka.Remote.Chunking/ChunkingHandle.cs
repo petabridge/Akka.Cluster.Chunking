@@ -18,13 +18,13 @@ internal sealed class ChunkingHandle : AbstractTransportAdapterHandle
 {
     public AtomicBoolean WriteAvailable { get; }
         
-    public IActorRef OutboundChunkingActor { get; }
+    public IActorRef ChunkedAssociationOwner { get; }
         
     public long MaxPayloadBytes { get; }
         
-    public ChunkingHandle(AssociationHandle wrappedHandle, IActorRef outboundChunkingActor, long maxPayloadBytes, AtomicBoolean writeAvailable) : base(wrappedHandle, ChunkingTransportAdapter.SCHEME.AddedSchemeIdentifier)
+    public ChunkingHandle(AssociationHandle wrappedHandle, IActorRef chunkedAssociationOwner, long maxPayloadBytes, AtomicBoolean writeAvailable) : base(wrappedHandle, ChunkingTransportAdapter.SCHEME.AddedSchemeIdentifier)
     {
-        OutboundChunkingActor = outboundChunkingActor;
+        ChunkedAssociationOwner = chunkedAssociationOwner;
         MaxPayloadBytes = maxPayloadBytes;
         WriteAvailable = writeAvailable;
     }
@@ -44,13 +44,13 @@ internal sealed class ChunkingHandle : AbstractTransportAdapterHandle
             return false;
             
         // we have bandwidth, so we're going to start chunking
-        OutboundChunkingActor.Tell(payload);
+        ChunkedAssociationOwner.Tell(payload);
         return true;
     }
 
     [Obsolete("Use the method that states reasons to make sure disassociation reasons are logged.")]
     public override void Disassociate()
     {
-        OutboundChunkingActor.Tell(PoisonPill.Instance);
+        ChunkedAssociationOwner.Tell(PoisonPill.Instance);
     }
 }

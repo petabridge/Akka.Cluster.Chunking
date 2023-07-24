@@ -1,6 +1,7 @@
 ﻿using System;
 using Akka.Actor;
 using Akka.Remote.Transport;
+using Akka.Util;
 using Akka.Util.Internal;
 
 namespace Akka.Remote.Chunking
@@ -22,13 +23,57 @@ namespace Akka.Remote.Chunking
     /// </summary>
     internal sealed class ChunkingTransportManager : ActorTransportAdapterManager
     {
+        public interface IChunkingManagerProtocol : INoSerializationVerificationNeeded
+        {
+        }
+
+        public sealed class AssociateResult : IChunkingManagerProtocol
+        {
+            /// <summary>
+            /// TBD
+            /// </summary>
+            /// <param name="associationHandle">TBD</param>
+            /// <param name="statusPromise">TBD</param>
+            public AssociateResult(AssociationHandle associationHandle,
+                TaskCompletionSource<AssociationHandle> statusPromise)
+            {
+                StatusPromise = statusPromise;
+                AssociationHandle = associationHandle;
+            }
+
+            /// <summary>
+            /// The outbound association handle
+            /// </summary>
+            public AssociationHandle AssociationHandle { get; }
+
+            /// <summary>
+            /// Used to complete the outbound association promise
+            /// </summary>
+            public TaskCompletionSource<AssociationHandle> StatusPromise { get; }
+        }
+
+        public sealed class Handle : IChunkingManagerProtocol
+        {
+            public Handle(ChunkingHandle chunkingHandle)
+            {
+                ChunkingHandle = chunkingHandle;
+            }
+
+            public ChunkingHandle ChunkingHandle { get; }
+        }
+
         private readonly Transport.Transport _wrappedTransport;
+        private readonly RemoteSettings _remoteSettings;
+        
+        private Dictionary<Address, ChunkingHandle> _handles = new();
 
         public ChunkingTransportManager(Transport.Transport wrappedTransport)
         {
             _wrappedTransport = wrappedTransport;
+            _remoteSettings = wrappedTransport.System.AsInstanceOf<ExtendedActorSystem>().Provider
+                .AsInstanceOf<IRemoteActorRefProvider>().RemoteSettings;
         }
-        
+
         internal static Address NakedAddress(Address address)
         {
             return address.WithProtocol(string.Empty)
@@ -42,14 +87,27 @@ namespace Akka.Remote.Chunking
                 case InboundAssociation ia:
                 {
                     var wrappedHandle = WrapHandle(ia.Association, AssociationListener, true);
-                    wrappedHandle.ThrottlerActor.Tell(new Handle(wrappedHandle));
+                    wrappedHandle.ChunkedAssociationOwner.Tell(new Handle(wrappedHandle));
                     return;
                 }
-                
+
                 case AssociateUnderlying ua:
                 {
                     // Slight modification of PipeTo, only success is sent, failure is propagated to a separate Task
-                    var associateTask = WrappedTransport.Associate(ua.RemoteAddress);
+                    async Task ProcessAssociate(AssociateUnderlying a)
+                    {
+                        var self = Self;
+                        try
+                        {
+                            await _wrappedTransport.Associate(a.RemoteAddress);
+                            self.Tell();
+                        }
+                        catch (Exception ex)
+                        {
+                            a.StatusPromise.SetException(ex);
+                        }
+                    }
+                    var associateTask = _wrappedTransport.Associate(ua.RemoteAddress);
                     var self = Self;
                     associateTask.ContinueWith(tr =>
                     {
@@ -61,11 +119,10 @@ namespace Akka.Remote.Chunking
                         {
                             self.Tell(new AssociateResult(tr.Result, ua.StatusPromise));
                         }
-
                     }, TaskContinuationOptions.ExecuteSynchronously);
                     return;
                 }
-                
+
                 // Finished outbound association and got back the handle
                 case AssociateResult ar:
                 {
@@ -74,14 +131,14 @@ namespace Akka.Remote.Chunking
                     var inMode = GetInboundMode(naked);
                     wrappedHandle.OutboundThrottleMode.Value = GetOutboundMode(naked);
                     wrappedHandle.ReadHandlerSource.Task.ContinueWith(
-                            tr => new ListenerAndMode(tr.Result, inMode), 
+                            tr => new ListenerAndMode(tr.Result, inMode),
                             TaskContinuationOptions.ExecuteSynchronously)
                         .PipeTo(wrappedHandle.ThrottlerActor);
                     _handleTable.Add((naked, wrappedHandle));
                     ar.StatusPromise.SetResult(wrappedHandle);
                     return;
                 }
-                
+
                 case SetThrottle st:
                 {
                     var naked = NakedAddress(st.Address);
@@ -90,7 +147,7 @@ namespace Akka.Remote.Chunking
                     {
                         Task.FromResult(SetThrottleAck.Instance)
                     };
-                    
+
                     foreach (var (address, throttlerHandle) in _handleTable)
                     {
                         if (address == naked)
@@ -99,12 +156,12 @@ namespace Akka.Remote.Chunking
 
                     var sender = Sender;
                     Task.WhenAll(modes).ContinueWith(
-                            _ => SetThrottleAck.Instance, 
+                            _ => SetThrottleAck.Instance,
                             TaskContinuationOptions.ExecuteSynchronously)
                         .PipeTo(sender);
                     return;
                 }
-                
+
                 case ForceDisassociate fd:
                 {
                     var naked = NakedAddress(fd.Address);
@@ -112,31 +169,31 @@ namespace Akka.Remote.Chunking
                     {
                         if (handle.Item1 == naked)
 #pragma warning disable CS0618
-                                handle.Item2.Disassociate();
+                            handle.Item2.Disassociate();
 #pragma warning restore CS0618
-                        }
+                    }
 
-                        /*
-                         * NOTE: Important difference between Akka.NET and Akka here.
-                         * In canonical Akka, ThrottleHandlers are never removed from
-                         * the _handleTable. The reason is because Ask-ing a terminated ActorRef
-                         * doesn't cause any exceptions to be thrown upstream - it just times out
-                         * and propagates a failed Future.
-                         * 
-                         * In the CLR, a CancellationException gets thrown and causes all
-                         * parent tasks chaining back to the EndPointManager to fail due
-                         * to an Ask timeout.
-                         * 
-                         * So in order to avoid this problem, we remove any disassociated handles
-                         * from the _handleTable.
-                         * 
-                         * Questions? Ask @Aaronontheweb
-                         */
-                        _handleTable.RemoveAll(tuple => tuple.Item1 == naked);
+                    /*
+                     * NOTE: Important difference between Akka.NET and Akka here.
+                     * In canonical Akka, ThrottleHandlers are never removed from
+                     * the _handleTable. The reason is because Ask-ing a terminated ActorRef
+                     * doesn't cause any exceptions to be thrown upstream - it just times out
+                     * and propagates a failed Future.
+                     * 
+                     * In the CLR, a CancellationException gets thrown and causes all
+                     * parent tasks chaining back to the EndPointManager to fail due
+                     * to an Ask timeout.
+                     * 
+                     * So in order to avoid this problem, we remove any disassociated handles
+                     * from the _handleTable.
+                     * 
+                     * Questions? Ask @Aaronontheweb
+                     */
+                    _handleTable.RemoveAll(tuple => tuple.Item1 == naked);
                     Sender.Tell(ForceDisassociateAck.Instance);
                     return;
                 }
-                
+
                 case ForceDisassociateExplicitly fde:
                 {
                     var naked = NakedAddress(fde.Address);
@@ -166,7 +223,7 @@ namespace Akka.Remote.Chunking
                     Sender.Tell(ForceDisassociateAck.Instance);
                     return;
                 }
-                
+
                 case Checkin chkin:
                 {
                     var naked = NakedAddress(chkin.Origin);
@@ -176,6 +233,22 @@ namespace Akka.Remote.Chunking
                 }
             }
         }
+
+        private ChunkingHandle WrapHandle(AssociationHandle originalHandle, IAssociationEventListener listener,
+            bool inbound)
+        {
+            var managerRef = Self;
+            var atomicBool = new AtomicBoolean(true);
+            var maxPayloadBytes = _wrappedTransport.MaximumPayloadBytes;
+            var chunkSize = (int)maxPayloadBytes / 4; // do 25% of the max payload size
+
+            return new ChunkingHandle(originalHandle, Context.ActorOf(
+                _remoteSettings.ConfigureDispatcher(Props.Create(() =>
+                        new ChunkedAssociationOwner(atomicBool, managerRef, listener, originalHandle, inbound, chunkSize))
+                    .WithDeploy(Deploy.Local)),
+                ChunkedAssociationOwner.ComputeChunkedAssociationName(originalHandle.LocalAddress,
+                    originalHandle.RemoteAddress)), maxPayloadBytes, atomicBool);
+        }
     }
 
     public sealed class ChunkingTransportAdapter : ActorTransportAdapter
@@ -184,7 +257,7 @@ namespace Akka.Remote.Chunking
             wrappedTransport, system)
         {
         }
-        
+
         internal const string SchemeIdentifier = "chunk";
         internal static readonly SchemeAugmenter SCHEME = new SchemeAugmenter(SchemeIdentifier);
         private static readonly AtomicCounter UniqueId = new(0);
