@@ -21,8 +21,8 @@ public interface IDeliveryProtocol
 /// </summary>
 /// <param name="Payload">The real, underlying message.</param>
 /// <param name="Recipient">The recipient (must not be null)</param>
-/// <param name="Sender">The sender (optional)</param>
-public sealed record ChunkedDelivery(object Payload, IActorRef Recipient, IActorRef? Sender = null) : IDeliveryProtocol;
+/// <param name="ReplyTo">The sender, as far as the remote actor knows (optional)</param>
+public sealed record ChunkedDelivery(object Payload, IActorRef Recipient, IActorRef? ReplyTo = null) : IDeliveryProtocol;
 
 /// <summary>
 /// Registers a consumer node with a producer node.
