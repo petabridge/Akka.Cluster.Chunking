@@ -7,7 +7,7 @@
 using Akka.Actor;
 using Akka.Util.Internal;
 
-namespace Akka.Remote.Chunking;
+namespace Akka.Cluster.Chunking;
 
 public static class ChunkingUtilities
 {

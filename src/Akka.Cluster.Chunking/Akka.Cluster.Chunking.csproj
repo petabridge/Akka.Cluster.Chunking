@@ -7,8 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Akka.Remote" />
-    <PackageReference Include="Akka.Remote.Hosting" />
+    <PackageReference Include="Akka.Cluster.Hosting" />
   </ItemGroup>
 	
 
