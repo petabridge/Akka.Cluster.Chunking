@@ -16,4 +16,38 @@ public interface IDeliveryProtocol
     
 }
 
-public record ChunkedDelivery(object Payload, IActorRef Recipient, IActorRef? Sender = null) : IDeliveryProtocol;
+/// <summary>
+/// Input to chunked delivery system.
+/// </summary>
+/// <param name="Payload">The real, underlying message.</param>
+/// <param name="Recipient">The recipient (must not be null)</param>
+/// <param name="Sender">The sender (optional)</param>
+public sealed record ChunkedDelivery(object Payload, IActorRef Recipient, IActorRef? Sender = null) : IDeliveryProtocol;
+
+/// <summary>
+/// Registers a consumer node with a producer node.
+/// </summary>
+/// <param name="ConsumerController">A reference pointing to the ConsumerController.</param>
+public record RegisterConsumer(IActorRef ConsumerController) : IDeliveryProtocol;
+
+/// <summary>
+/// Local response message indicating that the message has been queued for delivery.
+/// </summary>
+public sealed class DeliveryQueuedAck : IDeliveryProtocol
+{
+    public static readonly DeliveryQueuedAck Instance = new();
+    private DeliveryQueuedAck(){}
+}
+
+public enum DeliveryNackReason
+{
+    Timeout = 0,
+    BufferFull = 1
+}
+
+/// <summary>
+/// Unable to queue message for chunked delivery - usually due to buffer being full.
+/// </summary>
+/// <param name="Reason">Why the message was rejected.</param>
+/// <param name="Message">Optional - human-readable description of the failure.</param>
+public sealed record DeliveryQueuedNack(DeliveryNackReason Reason, string Message = "") : IDeliveryProtocol;

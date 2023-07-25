@@ -7,8 +7,100 @@
 using Akka.Actor;
 using Akka.Delivery;
 using Akka.Event;
+using Akka.Util;
+using static Akka.Cluster.Chunking.ChunkingUtilities;
 
 namespace Akka.Cluster.Chunking;
+
+/// <summary>
+/// Deadline struct in C# computed from the current time and the timeout
+/// value. The deadline is used to determine if a request has timed out.
+/// </summary>
+public readonly struct Deadline
+{
+    public Deadline(TimeSpan timeout)
+    {
+        Timeout = timeout;
+        DeadlineTime = DateTime.UtcNow + timeout;
+    }
+
+    public TimeSpan Timeout { get; }
+    public DateTime DeadlineTime { get; }
+
+    public bool IsOverdue => DeadlineTime < DateTime.UtcNow;
+}
+
+
+/// <summary>
+/// INTERNAL API
+///
+/// Producer actor responsible for transmitting outbound chunks of data to remote system.
+/// </summary>
+public sealed class OutboundDeliveryHandler : UntypedActor, IWithStash
+{
+    private readonly Address _remoteAddress;
+    private readonly Address _selfAddress;
+    private readonly int _chunkSize;
+    private readonly ILoggingAdapter _log = Context.GetLogger();
+    private readonly TimeSpan _requestTimeout;
+
+    private Queue<(ChunkedDelivery delivery, IActorRef sender, Deadline timeout)> _pendingDeliveries;
+
+    private IActorRef _producer;
+
+    public OutboundDeliveryHandler(Address remoteAddress, Address selfAddress, int chunkSize, TimeSpan requestTimeout, int queueCapacity = 20)
+    {
+        _remoteAddress = remoteAddress;
+        _chunkSize = chunkSize;
+        _selfAddress = selfAddress;
+        _requestTimeout = requestTimeout;
+        _pendingDeliveries = new(queueCapacity);
+        
+        // assert that ChunkSize must be at least 512b
+        if (_chunkSize < 512)
+            throw new ArgumentOutOfRangeException(nameof(chunkSize), "Chunk size must be at least 512b.");
+    }
+
+    // waiting for ConsumerController
+    protected override void OnReceive(object message)
+    {
+        switch (message)
+        {
+            case ReG
+        }
+    }
+
+    private void Ready(object message)
+    {
+        
+    }
+
+    protected override void PreStart()
+    {
+        _producer = CreateProducer();
+    }
+
+    private IActorRef CreateProducer()
+    {
+        // create ProducerController<IDeliveryProtocol>
+        var producerId = ComputeProducerId(_selfAddress, _remoteAddress);
+        var producerControllerSettings = ProducerController.Settings.Create(Context.System) with
+        {
+            ChunkLargeMessagesBytes = _chunkSize
+        };
+        var producerControllerProps =
+            ProducerController.Create<IDeliveryProtocol>(Context.System, producerId, Option<Props>.None,
+                producerControllerSettings);
+
+        var producer = Context.ActorOf(producerControllerProps, "producerController");
+        Context.Watch(producer);
+        
+        // register ourselves for message production
+        producer.Tell(new ProducerController.Start<IDeliveryProtocol>(Self));
+    }
+
+    public IStash Stash { get; set; } = null!;
+}
 
 /// <summary>
 /// INTERNAL API
@@ -18,7 +110,6 @@ namespace Akka.Cluster.Chunking;
 public sealed class InboundDeliveryHandler : UntypedActor
 {
     private readonly Address _remoteAddress;
-    private readonly Cluster _cluster = Cluster.Get(Context.System);
     private readonly ILoggingAdapter _log = Context.GetLogger();
 
     public InboundDeliveryHandler(Address remoteAddress)
@@ -43,23 +134,9 @@ public sealed class InboundDeliveryHandler : UntypedActor
                 d.ConfirmTo.Tell(ConsumerController.Confirmed.Instance);
                 break;
             }
-            case ClusterEvent.MemberRemoved removed when removed.Member.Address.Equals(_remoteAddress):
-            {
-                _log.Info("Remote delivery producer [{0}] removed from cluster - terminating...", _remoteAddress);
-                Context.Stop(Self);
-                break;
-            }
-            case ClusterEvent.IClusterDomainEvent:
-                // ignore
-                break;
             default:
                 Unhandled(message);
                 break;
         }
-    }
-
-    protected override void PreStart()
-    {
-        _cluster.Subscribe(Self, ClusterEvent.SubscriptionInitialStateMode.InitialStateAsEvents, typeof(ClusterEvent.MemberRemoved));
     }
 }

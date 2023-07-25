@@ -15,6 +15,14 @@ public static class ChunkingUtilities
     public const string ProducerControllerName = "chunkProducer";
     public const string ConsumerControllerName = "chunkConsumer";
     
+    /// <summary>
+    /// Generates a producerId based on address pairs + a counter, so a unique Id will be produced every time.
+    /// </summary>
+    /// <param name="localAddress"></param>
+    /// <param name="remoteAddress"></param>
+    /// <remarks>
+    /// Designed to generate new, unique producerIds each time there's a restart - so consumers can detect.
+    /// </remarks>
     public static string ComputeProducerId(Address localAddress, Address remoteAddress)
     {
         // we mix in a counter here to ensure that ProducerController restarts are handled properly
