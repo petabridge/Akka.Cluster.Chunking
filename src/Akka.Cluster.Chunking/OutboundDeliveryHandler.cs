@@ -179,6 +179,7 @@ public sealed class OutboundDeliveryHandler : UntypedActor, IWithStash
         
         // register ourselves for message production
         producer.Tell(new ProducerController.Start<IDeliveryProtocol>(Self));
+        return producer;
     }
 
     public IStash Stash { get; set; } = null!;
