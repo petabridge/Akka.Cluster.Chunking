@@ -5,11 +5,7 @@
 // -----------------------------------------------------------------------
 
 using Akka.Actor;
-using Akka.Delivery;
-using Akka.Remote.Transport;
-using Akka.Util;
 using Akka.Util.Internal;
-using static Akka.Remote.Chunking.ChunkingTransportManager;
 
 namespace Akka.Remote.Chunking;
 
@@ -40,7 +36,7 @@ public static class ChunkingUtilities
     /// <returns>A Uri-escaped actor name.</returns>
     public static string ComputeChunkedAssociationName(Address localAddress, Address remoteAddress)
     {
-        return Uri.EscapeDataString($"{NakedAddress(localAddress)}-{NakedAddress(remoteAddress)}");
+        return Uri.EscapeDataString($"{(localAddress)}-{(remoteAddress)}");
     }
     
     /// <summary>
