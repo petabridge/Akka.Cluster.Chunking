@@ -27,7 +27,7 @@ public sealed class OutboundDeliveryHandler : UntypedActor, IWithStash
 
     private readonly Queue<(ChunkedDelivery delivery, IActorRef sender, Deadline timeout)> _pendingDeliveries;
 
-    private IActorRef _producer;
+    private IActorRef? _producer = null;
     private ProducerController.RequestNext<IDeliveryProtocol>? _requestNext = null;
 
     public OutboundDeliveryHandler(Address remoteAddress, Address selfAddress, int chunkSize, TimeSpan requestTimeout, int queueCapacity = 20)
@@ -104,6 +104,9 @@ public sealed class OutboundDeliveryHandler : UntypedActor, IWithStash
                 _producer = CreateProducer();
                 break;
             }
+            case RegisterConsumer r: // replacing the consumer controller
+                _producer.Tell(new ProducerController.RegisterConsumer<IDeliveryProtocol>(r.ConsumerController));
+                break;
         }
     }
 
