@@ -42,7 +42,8 @@ public sealed class DeliveryQueuedAck : IDeliveryProtocol
 public enum DeliveryNackReason
 {
     Timeout = 0,
-    BufferFull = 1
+    BufferFull = 1,
+    SendingTerminated = 2,
 }
 
 /// <summary>

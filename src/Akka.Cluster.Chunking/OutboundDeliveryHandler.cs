@@ -25,7 +25,7 @@ public sealed class OutboundDeliveryHandler : UntypedActor, IWithStash
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private readonly TimeSpan _requestTimeout;
 
-    private Queue<(ChunkedDelivery delivery, IActorRef sender, Deadline timeout)> _pendingDeliveries;
+    private readonly Queue<(ChunkedDelivery delivery, IActorRef sender, Deadline timeout)> _pendingDeliveries;
 
     private IActorRef _producer;
     private ProducerController.RequestNext<IDeliveryProtocol>? _requestNext = null;
@@ -136,6 +136,7 @@ public sealed class OutboundDeliveryHandler : UntypedActor, IWithStash
                 var msg =
                     $"Unable to deliver [{chunkedDelivery}] to [{chunkedDelivery.Recipient}] from [{chunkedDelivery.ReplyTo}] - queue is full.";
                 _log.Warning(msg);
+                Context.System.DeadLetters.Tell(chunkedDelivery.Payload);
                 Sender.Tell(new DeliveryQueuedNack(DeliveryNackReason.BufferFull, msg));
             }
         }
@@ -145,6 +146,7 @@ public sealed class OutboundDeliveryHandler : UntypedActor, IWithStash
     {
         var msg = $"{del} timed out waiting for delivery [{_requestTimeout}]";
         _log.Warning(msg);
+        Context.System.DeadLetters.Tell(del);
         sender.Tell(new DeliveryQueuedNack(DeliveryNackReason.Timeout, msg));
     }
 
@@ -183,4 +185,28 @@ public sealed class OutboundDeliveryHandler : UntypedActor, IWithStash
     }
 
     public IStash Stash { get; set; } = null!;
+
+    protected override void PreRestart(Exception reason, object message)
+    {
+        // fail all messages in the queue
+        while (_pendingDeliveries.TryDequeue(out var tuple))
+        {
+            var (del, sender, _) = tuple;
+            var msg = $"{del} not being delivered due to restart of OutboundDeliveryHandler.";
+            Context.System.DeadLetters.Tell(del);
+            sender.Tell(new DeliveryQueuedNack(DeliveryNackReason.SendingTerminated, msg));
+        }
+    }
+    
+    protected override void PostStop()
+    {
+        // fail all messages in the queue
+        while (_pendingDeliveries.TryDequeue(out var tuple))
+        {
+            var (del, sender, _) = tuple;
+            var msg = $"{del} not being delivered due to shutdown of OutboundDeliveryHandler.";
+            sender.Tell(new DeliveryQueuedNack(DeliveryNackReason.SendingTerminated, msg));
+            Context.System.DeadLetters.Tell(del);
+        }
+    }
 }
