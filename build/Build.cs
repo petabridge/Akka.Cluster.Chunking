@@ -58,9 +58,9 @@ partial class Build : NukeBuild
     [Parameter] string NugetPrerelease;
 
     // Metadata used when signing packages and DLLs
-    [Parameter] string SigningName = "My Library";
-    [Parameter] string SigningDescription = "My REALLY COOL Library";
-    [Parameter] string SigningUrl = "https://signing.is.cool/";
+    string SigningName = "Akka.Cluster.Chunking";
+    string SigningDescription = "Akka.Cluster.Chunking library.";
+    string SigningUrl = "https://petabridge.com/";
 
     [Parameter][Secret] string SignClientSecret;
     [Parameter][Secret] string SignClientUser;
