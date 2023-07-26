@@ -5,6 +5,7 @@
 // -----------------------------------------------------------------------
 
 using Akka.Actor;
+using Akka.Configuration;
 using Akka.Delivery;
 using Akka.Event;
 using Akka.Remote;
@@ -45,15 +46,21 @@ public sealed record ChunkingManagerSettings()
     // add static method to parse ChunkingManagerSettings from HOCON under the akka.cluster.delivery-manager namespace
     public static ChunkingManagerSettings Create(ActorSystem system)
     {
-        var config = system.Settings.Config.GetConfig("akka.cluster.delivery-manager");
+        var config = system.Settings.Config.GetConfig("akka.cluster.chunking");
+        return Create(config);
+    }
+    
+    public static ChunkingManagerSettings Create(Config deliveryManagerHocon)
+    {
+        var config = deliveryManagerHocon;
         // parse the config
-        var chunkSize = config.GetInt("chunk-size");
+        var chunkSize = config.GetByteSize("chunk-size") ?? 1;
         var requestTimeout = config.GetTimeSpan("request-timeout");
         var outboundQueueCapacity = config.GetInt("outbound-queue-capacity");
         
         return new ChunkingManagerSettings()
         {
-            ChunkSize = chunkSize,
+            ChunkSize = (int)chunkSize,
             RequestTimeout = requestTimeout,
             OutboundQueueCapacity = outboundQueueCapacity
         };

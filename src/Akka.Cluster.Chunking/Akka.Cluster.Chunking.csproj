@@ -20,9 +20,7 @@
 
   <ItemGroup>
     <None Remove="Configuration\chunking.conf" />
-    <Content Include="Configuration\chunking.conf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <EmbeddedResource Include="Configuration\chunking.conf" />
   </ItemGroup>
 	
 

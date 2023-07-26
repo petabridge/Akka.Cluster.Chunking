@@ -10,5 +10,5 @@ namespace Akka.Cluster.Chunking.Configuration;
 
 public static class ChunkingConfiguration
 {
-    public static readonly Config DefaultHocon = ConfigurationFactory.FromResource<ChunkingManagerSettings>("Akka.Cluster.Chunking.Configuration.reference.conf");
+    public static readonly Config DefaultHocon = ConfigurationFactory.FromResource<ChunkingManagerSettings>("Akka.Cluster.Chunking.Configuration.chunking.conf");
 }
