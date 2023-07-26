@@ -18,6 +18,12 @@ Akka.Cluster.Chunking is a turnkey solution for head-of-line blocking that uses 
 
 ## Use
 
+To use, install the [Akka.Cluster.Chunking NuGet package](https://www.nuget.org/packages/Akka.Cluster.Chunking):
+
+```
+dotnet add package Akka.Cluster.Chunking --version 0.1.0
+```
+
 ### Configuration
 
 To use Akka.Cluster.Chunking, you first need to configure the plugin and automatically start it:
