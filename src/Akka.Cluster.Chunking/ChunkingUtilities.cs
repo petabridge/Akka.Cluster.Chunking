@@ -11,7 +11,7 @@ namespace Akka.Cluster.Chunking;
 
 public static class ChunkingUtilities
 {
-    private static readonly AtomicCounterLong ProducerIdCounter = new AtomicCounterLong(0L);
+    private static readonly AtomicCounterLong ProducerIdCounter = new(0L);
     public const string ProducerControllerName = "chunkProducer";
     public const string ConsumerControllerName = "chunkConsumer";
     
@@ -50,10 +50,9 @@ public static class ChunkingUtilities
     /// <summary>
     /// Used to compute the remote path for the ProducerController / ConsumerController on the remote side.
     /// </summary>
-    public static string ComputeRemoteControllerPath(Address localAddress, Address remoteAddress, IActorRef chunkingManager, string actorName)
+    public static ActorPath ComputeRemoteChunkerPath(Address remoteAddress)
     {
         // have to swap local and remote for the remote path
-        var chunkedAssociationName = ComputeChunkedAssociationName(remoteAddress, localAddress);
-        return (chunkingManager.Path / chunkedAssociationName / actorName).ToStringWithAddress(remoteAddress);
+        return new RootActorPath(remoteAddress) / "system" / "chunker";
     }
 }

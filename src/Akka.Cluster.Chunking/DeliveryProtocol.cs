@@ -28,7 +28,17 @@ public sealed record ChunkedDelivery(object Payload, IActorRef Recipient, IActor
 /// Registers a consumer node with a producer node.
 /// </summary>
 /// <param name="ConsumerController">A reference pointing to the ConsumerController.</param>
-public record RegisterConsumer(IActorRef ConsumerController) : IDeliveryProtocol;
+public sealed record RegisterConsumer(IActorRef ConsumerController) : IDeliveryProtocol;
+
+/// <summary>
+/// User to confirm that both nodes are now registered with one another.
+/// </summary>
+public sealed class RegisterAck : IDeliveryProtocol
+{
+    // make singleton
+    public static readonly RegisterAck Instance = new();
+    private RegisterAck(){}
+}
 
 /// <summary>
 /// Local response message indicating that the message has been queued for delivery.

@@ -51,6 +51,7 @@ public sealed class OutboundDeliveryHandler : UntypedActor, IWithStash
         {
             case RegisterConsumer r:
                 _producer.Tell(new ProducerController.RegisterConsumer<IDeliveryProtocol>(r.ConsumerController));
+                Sender.Tell(RegisterAck.Instance); // close the loop
                 Become(Ready);
                 Stash.UnstashAll();
                 break;
