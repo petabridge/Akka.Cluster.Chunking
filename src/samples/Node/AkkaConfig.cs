@@ -1,14 +1,13 @@
-﻿using Akka.Cluster;
-using Akka.Cluster.Hosting;
+﻿using Akka.Cluster.Hosting;
 using Akka.Remote.Hosting;
 
-namespace Shared;
+namespace SeedNode;
 
 public class AkkaConfig
 {
-    public required string ActorSystemName { get; set; }
+    public string ActorSystemName { get; set; }
     
-    public required RemoteOptions RemoteSettings { get; set; }
+    public RemoteOptions RemoteSettings { get; set; }
     
-    public required ClusterOptions ClusterSettings { get; set; }
+    public ClusterOptions ClusterSettings { get; set; }
 }
