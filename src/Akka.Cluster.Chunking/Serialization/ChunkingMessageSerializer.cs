@@ -154,8 +154,6 @@ public sealed class ChunkingMessageSerializer : SerializerWithStringManifest
             recipient,
             sender);
     }
-    
-    
 
     public override string Manifest(object o)
     {

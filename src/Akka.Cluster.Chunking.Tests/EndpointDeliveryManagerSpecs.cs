@@ -76,5 +76,21 @@ namespace Akka.Remote.Chunking.Tests
             await receiver1.ExpectMsgAsync("del1");
             await receiver2.ExpectMsgAsync("del2");
         }
+
+        [Fact]
+        public async Task ShouldShutdownAutomaticallyIfNacked()
+        {
+            // arrange
+            var remoteDeliveryManagerProbe = CreateTestProbe();
+            var remoteDeliveryManager = CreateEndpointDeliveryManager(remoteDeliveryManagerProbe);
+            Watch(remoteDeliveryManager);
+            
+            // act
+            var registerConsumer = await remoteDeliveryManagerProbe.ExpectMsgAsync<RegisterConsumer>();
+            remoteDeliveryManagerProbe.Reply(RegisterNack.Instance); // close the loop - negatively
+            
+            // assert
+            await ExpectTerminatedAsync(remoteDeliveryManager);
+        }
     }
 }

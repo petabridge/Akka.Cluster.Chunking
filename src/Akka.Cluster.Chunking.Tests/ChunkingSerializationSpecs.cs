@@ -7,7 +7,6 @@
 using Akka.Cluster.Chunking;
 using Akka.Cluster.Chunking.Configuration;
 using Akka.Cluster.Chunking.Serialization;
-using Akka.Serialization;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;

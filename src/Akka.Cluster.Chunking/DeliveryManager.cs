@@ -112,6 +112,7 @@ public sealed class DeliveryManager : UntypedActor
                 if (_refProvider.HasAddress(address) || address.Equals(Address.AllSystems))
                 {
                     _log.Error("Attempted to register consumer for local address [{0}] - IGNORING", address);
+                    Sender.Tell(RegisterNack.Instance);
                     return;
                 }
                 
@@ -237,6 +238,15 @@ public sealed class EndpointDeliveryManager : UntypedActor, IWithTimers
                 break;
             case RegisterConsumer r:
                 _outboundDeliveryHandler.Forward(r);
+                break;
+            case RegisterNack:
+                // if we've been nacked, we were trying to register our Consumer to a local producer, which is illegal.
+                // we need to stop ourselves.
+                _log.Error("Received RegisterNack from [{0}] - stopping ourselves", Sender);
+                Context.Stop(Self);
+                break;
+            default:
+                Unhandled(message);
                 break;
         }
     }
