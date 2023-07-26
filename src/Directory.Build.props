@@ -12,11 +12,13 @@
     <PackageLicenseUrl>
       https://github.com/petabridge/Akka.Cluster.Chunking/blob/master/LICENSE
     </PackageLicenseUrl>
+    <PackageIcon>petabridge_logo_square.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup Label="Build">
-    <LangVersion>latest</LangVersion>
+    <LangVersion>11.0</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -28,7 +30,8 @@
   <!-- SourceLink support for all Akka.NET projects -->
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
-	<None Include="$(MSBuildThisFileDirectory)\..\README.md" Pack="true" Visible="false" PackagePath="\" />
+     <None Include="$(MSBuildThisFileDirectory)\..\docs\images\petabridge_logo_square.png" Pack="true" Visible="false" PackagePath="\" />
+	  <None Include="$(MSBuildThisFileDirectory)\..\README.md" Pack="true" Visible="false" PackagePath="\" />
   </ItemGroup>
   
   <PropertyGroup>
