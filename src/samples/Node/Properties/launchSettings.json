@@ -4,12 +4,12 @@
     "SeedNode": {
       "commandName": "Project",
       "environmentVariables": {
-        "AkkaConfiguration__ClusterSettings__SeedNodes": "akka.tcp://ClusterSystem@localhost:9291"
       }
     },
     "NonSeedNode": {
       "commandName": "Project",
       "environmentVariables": {
+        "AkkaConfiguration__RemoteSettings__Port": "0"
       }
     }
   }

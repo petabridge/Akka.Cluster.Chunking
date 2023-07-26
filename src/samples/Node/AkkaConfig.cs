@@ -1,4 +1,5 @@
 ﻿using Akka.Cluster;
+using Akka.Cluster.Hosting;
 using Akka.Remote.Hosting;
 
 namespace Shared;
@@ -9,5 +10,5 @@ public class AkkaConfig
     
     public required RemoteOptions RemoteSettings { get; set; }
     
-    public required ClusterSettings ClusterSettings { get; set; }
+    public required ClusterOptions ClusterSettings { get; set; }
 }

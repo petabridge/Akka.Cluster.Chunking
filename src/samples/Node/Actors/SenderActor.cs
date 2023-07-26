@@ -9,7 +9,7 @@ using Akka.Cluster;
 using Akka.Cluster.Chunking;
 using Akka.Event;
 
-namespace SeedNode;
+namespace SeedNode.Actors;
 
 public sealed class SenderActor : UntypedActor, IWithTimers{
 
@@ -46,6 +46,9 @@ public sealed class SenderActor : UntypedActor, IWithTimers{
                 });
                 
                 break;
+            case SendMsg:
+                _log.Warning("No targets available to send message to.");
+                break;
             case ClusterEvent.MemberUp m when !m.Member.Address.Equals(_cluster.SelfAddress): // only care about non-self nodes
                 var address = m.Member.Address;
                 var pathToPrinter = new RootActorPath(address) / "user" / "printer";
@@ -70,7 +73,7 @@ public sealed class SenderActor : UntypedActor, IWithTimers{
     
     public SenderActor()
     {
-        Timers.StartPeriodicTimer("send-msg", SendMsg.Instance, TimeSpan.FromSeconds(2));
+        Timers!.StartPeriodicTimer("send-msg", SendMsg.Instance, TimeSpan.FromSeconds(2));
         _cluster.Subscribe(Self, ClusterEvent.SubscriptionInitialStateMode.InitialStateAsEvents, typeof(ClusterEvent.IMemberEvent));
     }
 
