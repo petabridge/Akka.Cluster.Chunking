@@ -165,6 +165,13 @@ internal sealed class DeliveryManager : UntypedActor
             // forward to appropriate manager
             manager.Forward(chunkedDelivery);
         }
+        else if (!_cluster.State.Members.Any(c => c.Address.Equals(address)))
+        {
+            var errMsg = $"Attempted to deliver message to [{address}] but that address is not a member of the cluster.";
+            _log.Error(errMsg);
+            Sender.Tell(new DeliveryQueuedNack(DeliveryNackReason.IllegalAddress, errMsg));
+            Context.System.DeadLetters.Tell(chunkedDelivery);
+        }
         else
         {
             // need to create manager

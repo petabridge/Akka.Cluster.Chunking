@@ -92,6 +92,11 @@ public enum DeliveryNackReason
     Timeout = 0,
     BufferFull = 1,
     SendingTerminated = 2,
+    
+    /// <summary>
+    /// <see cref="Address"/> isn't part of the cluster.
+    /// </summary>
+    IllegalAddress = 3,
 }
 
 /// <summary>
