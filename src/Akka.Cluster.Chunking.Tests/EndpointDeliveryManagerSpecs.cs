@@ -20,7 +20,7 @@ namespace Akka.Remote.Chunking.Tests
         {
             Func<Address, ActorPath> getPath = address => otherDeliveryManager.Path;;
 
-            return Sys.ActorOf(Props.Create(() => new EndpointDeliveryManager(Address.AllSystems, Address.AllSystems, new DeliveryManagerSettings(), getPath)));
+            return Sys.ActorOf(Props.Create(() => new EndpointDeliveryManager(Address.AllSystems, Address.AllSystems, new ChunkingManagerSettings(), getPath)));
         }
 
         private IActorRef CreateNonChunkingProducerController(string? name = null)

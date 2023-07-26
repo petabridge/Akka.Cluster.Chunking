@@ -17,6 +17,13 @@
   <ItemGroup>
     <Protobuf Include="Serialization\Chunking.proto" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Configuration\chunking.conf" />
+    <Content Include="Configuration\chunking.conf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 	
 
 </Project>

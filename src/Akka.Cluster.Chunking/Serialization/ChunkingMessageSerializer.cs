@@ -12,6 +12,9 @@ using Google.Protobuf;
 
 namespace Akka.Cluster.Chunking.Serialization;
 
+/// <summary>
+/// INTERNAL API
+/// </summary>
 internal sealed class WrappedPayloadSupport
 {
     private readonly ExtendedActorSystem _system;

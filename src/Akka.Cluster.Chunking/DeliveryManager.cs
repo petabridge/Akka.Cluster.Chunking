@@ -16,7 +16,7 @@ namespace Akka.Cluster.Chunking;
 /// <summary>
 /// Settings for <see cref="DeliveryManager"/>.
 /// </summary>
-public sealed record DeliveryManagerSettings()
+public sealed record ChunkingManagerSettings()
 {
     /// <summary>
     /// Chunk size to use over the wire.
@@ -42,8 +42,8 @@ public sealed record DeliveryManagerSettings()
     /// </remarks>
     public int OutboundQueueCapacity { get; init; } = 20;
     
-    // add static method to parse DeliveryManagerSettings from HOCON under the akka.cluster.delivery-manager namespace
-    public static DeliveryManagerSettings Create(ActorSystem system)
+    // add static method to parse ChunkingManagerSettings from HOCON under the akka.cluster.delivery-manager namespace
+    public static ChunkingManagerSettings Create(ActorSystem system)
     {
         var config = system.Settings.Config.GetConfig("akka.cluster.delivery-manager");
         // parse the config
@@ -51,7 +51,7 @@ public sealed record DeliveryManagerSettings()
         var requestTimeout = config.GetTimeSpan("request-timeout");
         var outboundQueueCapacity = config.GetInt("outbound-queue-capacity");
         
-        return new DeliveryManagerSettings()
+        return new ChunkingManagerSettings()
         {
             ChunkSize = chunkSize,
             RequestTimeout = requestTimeout,
@@ -69,10 +69,10 @@ public sealed class DeliveryManager : UntypedActor
     private readonly Dictionary<IActorRef, Address> _addressesByManager = new();
     private readonly Cluster _cluster = Cluster.Get(Context.System);
     private readonly ILoggingAdapter _log = Context.GetLogger();
-    private readonly DeliveryManagerSettings _settings;
+    private readonly ChunkingManagerSettings _settings;
     private readonly IRemoteActorRefProvider _refProvider;
 
-    public DeliveryManager(DeliveryManagerSettings settings)
+    public DeliveryManager(ChunkingManagerSettings settings)
     {
         _settings = settings;
         
@@ -185,7 +185,7 @@ public sealed class EndpointDeliveryManager : UntypedActor, IWithTimers
     private IActorRef? _inboundDeliveryHandler;
     private IActorRef? _outboundDeliveryHandler;
 
-    private readonly DeliveryManagerSettings _settings;
+    private readonly ChunkingManagerSettings _settings;
     private readonly ILoggingAdapter _log = Context.GetLogger();
     
     private readonly Func<Address, ActorPath> _chunkerPathFunc;
@@ -197,7 +197,7 @@ public sealed class EndpointDeliveryManager : UntypedActor, IWithTimers
         private RegisterToRemote() { }
     }
 
-    public EndpointDeliveryManager(Address localAddress, Address remoteAddress, DeliveryManagerSettings settings, Func<Address, ActorPath>? chunkerPath = null)
+    public EndpointDeliveryManager(Address localAddress, Address remoteAddress, ChunkingManagerSettings settings, Func<Address, ActorPath>? chunkerPath = null)
     {
         _localAddress = localAddress;
         _remoteAddress = remoteAddress;
