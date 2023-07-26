@@ -58,7 +58,7 @@ public sealed class InboundDeliveryHandler : UntypedActor
                         chunkedDelivery.Recipient, chunkedDelivery.ReplyTo ?? ActorRefs.NoSender, _remoteAddress);
 
                 // deliver the message to the correct local recipient
-                chunkedDelivery.Recipient.Tell(chunkedDelivery.Payload);
+                chunkedDelivery.Recipient.Tell(chunkedDelivery.Payload, chunkedDelivery.ReplyTo);
                 // confirm messages in the buffer
                 d.ConfirmTo.Tell(ConsumerController.Confirmed.Instance);
                 break;

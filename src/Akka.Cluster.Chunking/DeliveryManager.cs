@@ -69,8 +69,8 @@ public sealed class EndpointDeliveryManager : UntypedActor, IWithTimers
 
     private readonly DeliveryManagerSettings _settings;
     private readonly ILoggingAdapter _log = Context.GetLogger();
-
-    private bool _registeredOurConsumer = false;
+    
+    private readonly Func<Address, ActorPath> _chunkerPathFunc;
 
     private class RegisterToRemote
     {
@@ -79,11 +79,12 @@ public sealed class EndpointDeliveryManager : UntypedActor, IWithTimers
         private RegisterToRemote() { }
     }
 
-    public EndpointDeliveryManager(Address localAddress, Address remoteAddress, DeliveryManagerSettings settings)
+    public EndpointDeliveryManager(Address localAddress, Address remoteAddress, DeliveryManagerSettings settings, Func<Address, ActorPath>? chunkerPath = null)
     {
         _localAddress = localAddress;
         _remoteAddress = remoteAddress;
         _settings = settings;
+        _chunkerPathFunc = chunkerPath ?? ComputeRemoteChunkerPath;
     }
 
     protected override void OnReceive(object message)
@@ -94,7 +95,7 @@ public sealed class EndpointDeliveryManager : UntypedActor, IWithTimers
                 _outboundDeliveryHandler.Forward(chunkedDelivery);
                 break;
             case RegisterToRemote: // need to register our consumer to the remote endpoint
-                var remoteChunkerPath = ComputeRemoteChunkerPath(_remoteAddress);
+                var remoteChunkerPath = _chunkerPathFunc(_remoteAddress);
                 if (_log.IsDebugEnabled)
                 {
                     _log.Debug("Sending RegisterToRemote to [{0}] for our local address [{1}]", remoteChunkerPath, _localAddress);
@@ -118,6 +119,7 @@ public sealed class EndpointDeliveryManager : UntypedActor, IWithTimers
     protected override void PreStart()
     {
         CreateHandlers();
+        Self.Tell(RegisterToRemote.Instance); // begin registration process
     }
 
     // method that creates the InboundDeliveryHandler, OutboundDeliveryHandler, and ConsumerController
@@ -137,7 +139,7 @@ public sealed class EndpointDeliveryManager : UntypedActor, IWithTimers
                 consumerControllerSettings);
         
         _consumerController = Context.ActorOf(consumerControllerProps, "consumer-controller");
-        _consumerController.Tell(new ConsumerController.Start<IDeliveryProtocol>(_outboundDeliveryHandler));
+        _consumerController.Tell(new ConsumerController.Start<IDeliveryProtocol>(_inboundDeliveryHandler));
     }
 
     public ITimerScheduler Timers { get; set; } = null!;
