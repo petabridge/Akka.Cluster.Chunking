@@ -18,7 +18,7 @@
   </PropertyGroup>
 
   <PropertyGroup Label="Build">
-    <LangVersion>11.0</LangVersion>
+    <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
