@@ -3,11 +3,19 @@
   <PropertyGroup>
     <TargetFramework>$(LibraryFramework)</TargetFramework>
 	<PackageReadmeFile>README.md</PackageReadmeFile>
-    <Description>Your description here.</Description>
+    <Description>Akka.NET ActorSystem extension for managing delivery of very large messages over Akka.Cluster.</Description>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Akka.Cluster.Hosting" />
+    <PackageReference Include="Grpc.Tools">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="Serialization\Chunking.proto" />
   </ItemGroup>
 	
 
