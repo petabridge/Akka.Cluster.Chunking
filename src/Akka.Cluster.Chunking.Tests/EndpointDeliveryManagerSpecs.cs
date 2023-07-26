@@ -54,5 +54,27 @@ namespace Akka.Remote.Chunking.Tests
             await receiverProbe.ExpectMsgAsync("foo");
             receiverProbe.Sender.Should().Be(senderProbe.Ref);
         }
+
+        [Fact]
+        public async Task TwoManagersShouldRegisterToEachOther()
+        {
+            // Arrange
+            var receiver1 = CreateTestProbe();
+            var receiver2 = CreateTestProbe();
+            var remoteManager1 = CreateTestProbe();
+            var remoteDeliveryManager1 = CreateEndpointDeliveryManager(remoteManager1);
+            
+            // Act
+            var registerConsumer1 = await remoteManager1.ExpectMsgAsync<RegisterConsumer>();
+            var remoteDeliveryManager2 = CreateEndpointDeliveryManager(remoteDeliveryManager1);
+            remoteManager1.Forward(remoteDeliveryManager2);
+            
+            remoteDeliveryManager1.Tell(new ChunkedDelivery("del1", receiver1.Ref));
+            remoteDeliveryManager2.Tell(new ChunkedDelivery("del2", receiver2.Ref));
+            
+            // Assert
+            await receiver1.ExpectMsgAsync("del1");
+            await receiver2.ExpectMsgAsync("del2");
+        }
     }
 }
