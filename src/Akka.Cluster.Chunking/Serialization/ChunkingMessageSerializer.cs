@@ -95,7 +95,7 @@ public sealed class ChunkingMessageSerializer : SerializerWithStringManifest
         };
     }
 
-    private Proto.RegisterConsumer ToProto(RegisterConsumer rc)
+    private static Proto.RegisterConsumer ToProto(RegisterConsumer rc)
     {
         var recipient = Akka.Serialization.Serialization.SerializedActorPath(rc.ConsumerController);
 
@@ -147,7 +147,7 @@ public sealed class ChunkingMessageSerializer : SerializerWithStringManifest
     private ChunkedDelivery FromProto(Proto.ChunkedDelivery parseFrom)
     {
         var recipient = system.Provider.ResolveActorRef(parseFrom.Recipient);
-        var sender = system.Provider.ResolveActorRef(parseFrom.Recipient);
+        var sender = string.IsNullOrEmpty(parseFrom.Sender) ? ActorRefs.NoSender : system.Provider.ResolveActorRef(parseFrom.Sender);
 
         return new ChunkedDelivery(
             _wrappedPayloadSupport.PayloadFrom(parseFrom.Payload),
