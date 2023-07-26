@@ -15,6 +15,11 @@ public sealed class PrinterActor : UntypedActor
     
     protected override void OnReceive(object message)
     {
-        _log.Info("Received {0}", message);
+        if(message is byte[] bytes)
+            _log.Info("Received [{0}] bytes from [{1}]", bytes.Length, Sender);
+        else
+        {
+            _log.Info("Received [{0}] from [{1}]", message, Sender);
+        }
     }
 }
