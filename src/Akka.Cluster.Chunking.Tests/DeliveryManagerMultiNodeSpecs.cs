@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-//  <copyright file="DeliveryManagerMultiNodeSpecs.cs" company="Akka.NET Project">
+//  <copyright file="ChunkingExtensionEnd2EndSpecs.cs" company="Akka.NET Project">
 //      Copyright (C) 2015-2023 .NET Petabridge, LLC
 //  </copyright>
 // -----------------------------------------------------------------------

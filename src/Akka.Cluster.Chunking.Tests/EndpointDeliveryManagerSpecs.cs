@@ -71,6 +71,10 @@ namespace Akka.Remote.Chunking.Tests
             remoteDeliveryManager2.Tell(new ChunkedDelivery("del2", receiver2.Ref));
             
             // Assert
+            
+            await ExpectMsgAsync<DeliveryQueuedAck>();
+            await ExpectMsgAsync<DeliveryQueuedAck>();
+            
             await receiver1.ExpectMsgAsync("del1");
             await receiver2.ExpectMsgAsync("del2");
         }

@@ -54,7 +54,7 @@ public sealed record ChunkingManagerSettings()
     {
         var config = deliveryManagerHocon;
         // parse the config
-        var chunkSize = config.GetByteSize("chunk-size") ?? 1;
+        var chunkSize = config.GetByteSize("chunk-size");
         var requestTimeout = config.GetTimeSpan("request-timeout");
         var outboundQueueCapacity = config.GetInt("outbound-queue-capacity");
         
@@ -100,6 +100,7 @@ internal sealed class DeliveryManager : UntypedActor
                 {
                     // forward directly to intended party
                     chunkedDelivery.Recipient.Tell(chunkedDelivery.Payload, chunkedDelivery.ReplyTo);
+                    Sender.Tell(DeliveryQueuedAck.Instance); // NEED TO ACK
                     return;
                 }
 
