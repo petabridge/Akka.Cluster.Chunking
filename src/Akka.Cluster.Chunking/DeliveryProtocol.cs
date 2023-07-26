@@ -24,10 +24,36 @@ public interface INetworkedDeliveryProtocol : IDeliveryProtocol{ }
 /// <summary>
 /// Input to chunked delivery system.
 /// </summary>
-/// <param name="Payload">The real, underlying message.</param>
-/// <param name="Recipient">The recipient (must not be null)</param>
-/// <param name="ReplyTo">The sender, as far as the remote actor knows (optional)</param>
-public sealed record ChunkedDelivery(object Payload, IActorRef Recipient, IActorRef? ReplyTo = null) : INetworkedDeliveryProtocol;
+public sealed record ChunkedDelivery : INetworkedDeliveryProtocol
+{
+    public ChunkedDelivery(object payload, IActorRef recipient, IActorRef? replyTo = null)
+    {
+        Payload = payload ?? throw new ArgumentNullException(nameof(payload));
+        Recipient = recipient ?? throw new ArgumentNullException(nameof(recipient));
+        ReplyTo = replyTo;
+    }
+
+    /// <summary>
+    /// The sender, as far as the remote actor knows (optional)
+    /// </summary>
+    public IActorRef? ReplyTo { get; init; }
+
+    /// <summary>
+    /// The recipient of the message.
+    /// </summary>
+    /// <remarks>
+    /// Must not be null.
+    /// </remarks>
+    public IActorRef Recipient { get; init; }
+
+    /// <summary>
+    /// The real, underlying message.
+    /// </summary>
+    /// <remarks>
+    /// Must not be null.
+    /// </remarks>
+    public object Payload { get; init; }
+}
 
 /// <summary>
 /// Registers a consumer node with a producer node.
