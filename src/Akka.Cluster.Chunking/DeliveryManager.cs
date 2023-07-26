@@ -7,6 +7,7 @@
 using Akka.Actor;
 using Akka.Delivery;
 using Akka.Event;
+using Akka.Remote;
 using Akka.Util;
 using static Akka.Cluster.Chunking.ChunkingUtilities;
 
@@ -40,15 +41,132 @@ public sealed record DeliveryManagerSettings()
     /// Defaults to 20.
     /// </remarks>
     public int OutboundQueueCapacity { get; init; } = 20;
+    
+    // add static method to parse DeliveryManagerSettings from HOCON under the akka.cluster.delivery-manager namespace
+    public static DeliveryManagerSettings Create(ActorSystem system)
+    {
+        var config = system.Settings.Config.GetConfig("akka.cluster.delivery-manager");
+        // parse the config
+        var chunkSize = config.GetInt("chunk-size");
+        var requestTimeout = config.GetTimeSpan("request-timeout");
+        var outboundQueueCapacity = config.GetInt("outbound-queue-capacity");
+        
+        return new DeliveryManagerSettings()
+        {
+            ChunkSize = chunkSize,
+            RequestTimeout = requestTimeout,
+            OutboundQueueCapacity = outboundQueueCapacity
+        };
+    }
 }
 
+/// <summary>
+/// Top-level system actor responsible for running the <see cref="IDeliveryProtocol"/>
+/// </summary>
 public sealed class DeliveryManager : UntypedActor
 {
-    private readonly Dictionary<Address, IActorRef> _endpointManagers;
+    private readonly Dictionary<Address, IActorRef> _managersByAddress = new();
+    private readonly Dictionary<IActorRef, Address> _addressesByManager = new();
+    private readonly Cluster _cluster = Cluster.Get(Context.System);
+    private readonly ILoggingAdapter _log = Context.GetLogger();
+    private readonly DeliveryManagerSettings _settings;
+    private readonly IRemoteActorRefProvider _refProvider;
+
+    public DeliveryManager(DeliveryManagerSettings settings)
+    {
+        _settings = settings;
+        
+        // want to force a cast error here if Akka.Remote isn't enabled
+        _refProvider = (IRemoteActorRefProvider)((ExtendedActorSystem)Context.System).Provider;
+    }
 
     protected override void OnReceive(object message)
     {
-        throw new NotImplementedException();
+        switch (message)
+        {
+            case ChunkedDelivery chunkedDelivery:
+            {
+                var address = chunkedDelivery.Recipient.Path.Address;
+                
+                // quick check for local addresses
+                if (_refProvider.HasAddress(address) || address.Equals(Address.AllSystems))
+                {
+                    // forward directly to intended party
+                    chunkedDelivery.Recipient.Tell(chunkedDelivery.Payload, chunkedDelivery.ReplyTo);
+                    return;
+                }
+
+                EnsureManagerAndForward(address, chunkedDelivery);
+                break;
+            }
+            case RegisterConsumer registerConsumer:
+            {
+                var address = registerConsumer.ConsumerController.Path.Address;
+                if (_refProvider.HasAddress(address) || address.Equals(Address.AllSystems))
+                {
+                    _log.Error("Attempted to register consumer for local address [{0}] - IGNORING", address);
+                    return;
+                }
+                
+                EnsureManagerAndForward(address, registerConsumer);
+                break;
+            }
+            case Terminated t:
+            {
+                /*
+                 * In case the manager abruptly self-terminates (which is only possible via catastrophic programming error).
+                 * remove from records and wait for next delivery attempt to re-create the manager.
+                 */
+                if (_addressesByManager.TryGetValue(t.ActorRef, out var address))
+                {
+                    _managersByAddress.Remove(address);
+                    _addressesByManager.Remove(t.ActorRef);
+                }
+                break;
+            }
+            case ClusterEvent.CurrentClusterState:
+            {
+                // ignore
+                break;
+            }
+            case ClusterEvent.MemberLeft left:
+            {
+                if (_managersByAddress.TryGetValue(left.Member.Address, out var manager))
+                {
+                    _log.Info("Member [{0}] left the cluster - stopping delivery manager for [{1}]", left.Member, left.Member.Address);
+                    Context.Stop(manager);
+                }
+                break;
+            }
+            default:
+                Unhandled(message);
+                break;
+        }
+    }
+
+    protected override void PreStart()
+    {
+        _cluster.Subscribe(Self, typeof(ClusterEvent.MemberLeft));
+    }
+
+    private void EnsureManagerAndForward(Address address, IDeliveryProtocol chunkedDelivery)
+    {
+        if (_managersByAddress.TryGetValue(address, out var manager))
+        {
+            // forward to appropriate manager
+            manager.Forward(chunkedDelivery);
+        }
+        else
+        {
+            // need to create manager
+            var managerRef = Context.ActorOf(Props.Create(() =>
+                    new EndpointDeliveryManager(_cluster.SelfAddress, address, _settings, ComputeRemoteChunkerPath)),
+                Uri.EscapeDataString("delivery-manager-" + address));
+            _managersByAddress[address] = managerRef;
+            _addressesByManager[managerRef] = address;
+            managerRef.Forward(chunkedDelivery);
+            Context.Watch(managerRef);
+        }
     }
 }
 
