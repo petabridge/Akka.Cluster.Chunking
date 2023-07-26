@@ -16,7 +16,7 @@ namespace Akka.Cluster.Chunking;
 ///
 /// Producer actor responsible for transmitting outbound chunks of data to remote system.
 /// </summary>
-public sealed class OutboundDeliveryHandler : UntypedActor, IWithStash
+internal sealed class OutboundDeliveryHandler : UntypedActor, IWithStash
 {
     private readonly Address _remoteAddress;
     private readonly Address _selfAddress;

@@ -14,7 +14,7 @@ namespace Akka.Cluster.Chunking;
 /// Deadline struct in C# computed from the current time and the timeout
 /// value. The deadline is used to determine if a request has timed out.
 /// </summary>
-public readonly struct Deadline
+internal readonly struct Deadline
 {
     public Deadline(TimeSpan timeout)
     {
@@ -36,7 +36,7 @@ public readonly struct Deadline
 /// <remarks>
 /// ConsumerController is created externally, by this actor's parent.
 /// </remarks>
-public sealed class InboundDeliveryHandler : UntypedActor
+internal sealed class InboundDeliveryHandler : UntypedActor
 {
     private readonly Address _remoteAddress;
     private readonly ILoggingAdapter _log = Context.GetLogger();

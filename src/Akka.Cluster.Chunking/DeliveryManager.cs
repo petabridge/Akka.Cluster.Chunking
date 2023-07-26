@@ -70,7 +70,7 @@ public sealed record ChunkingManagerSettings()
 /// <summary>
 /// Top-level system actor responsible for running the <see cref="IDeliveryProtocol"/>
 /// </summary>
-public sealed class DeliveryManager : UntypedActor
+internal sealed class DeliveryManager : UntypedActor
 {
     private readonly Dictionary<Address, IActorRef> _managersByAddress = new();
     private readonly Dictionary<IActorRef, Address> _addressesByManager = new();
@@ -184,7 +184,7 @@ public sealed class DeliveryManager : UntypedActor
 /// Actor responsible for managing ProducerController and ConsumerController instances
 /// for a single remote endpoint.
 /// </summary>
-public sealed class EndpointDeliveryManager : UntypedActor, IWithTimers
+internal sealed class EndpointDeliveryManager : UntypedActor, IWithTimers
 {
     private readonly Address _localAddress;
     private readonly Address _remoteAddress;
