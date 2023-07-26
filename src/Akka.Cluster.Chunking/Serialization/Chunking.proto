@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package Akka.Cluster.Chunking.Proto;
+
+// defines the user-defined message, wrapped inside the ChunkedDelivery
+message Payload {
+  bytes message = 1;
+  int32 serializerId = 2;
+  bytes messageManifest = 3;
+}
+
+enum DeliveryNackReason{
+  TIMEOUT = 0;
+  BUFFER_FULL = 1;
+  SENDING_TERMINATED = 2;
+}
+
+// defines the ChunkedDelivery message
+message ChunkedDelivery{
+  Payload Payload = 1;
+  string Recipient = 2;
+  string Sender = 3;
+}
+
+message RegisterConsumer {
+  string Consumer = 1;
+}

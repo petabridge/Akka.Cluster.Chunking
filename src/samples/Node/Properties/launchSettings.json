@@ -1,0 +1,16 @@
+﻿{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "SeedNode": {
+      "commandName": "Project",
+      "environmentVariables": {
+      }
+    },
+    "NonSeedNode": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "AkkaConfiguration__RemoteSettings__Port": "0"
+      }
+    }
+  }
+}

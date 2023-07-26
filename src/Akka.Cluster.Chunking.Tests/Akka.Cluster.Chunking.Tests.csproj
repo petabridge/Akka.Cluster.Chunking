@@ -1,19 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>    
-    <TargetFramework>$(TestsNetCoreFramework)</TargetFramework>
+    <TargetFramework>$(TestsNetCoreFramework)</TargetFramework>    
+    <RootNamespace>Akka.Remote.Chunking.Tests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Akka.TestKit.Xunit2" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
-    <PackageReference Include="xunit.runner.visualstudio" >
+    <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Akka.Remote.Chunking\Akka.Remote.Chunking.csproj" />
+    <ProjectReference Include="..\Akka.Cluster.Chunking\Akka.Cluster.Chunking.csproj" />
   </ItemGroup>
 
 </Project>

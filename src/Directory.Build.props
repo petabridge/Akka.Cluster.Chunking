@@ -1,15 +1,19 @@
 ﻿<Project>
   <PropertyGroup>
-    <Copyright>Copyright © 2022 Your Company</Copyright>
-    <Authors>Your Authors</Authors>
+    <Copyright>Copyright © 2015-2023 Petabridge, LLC</Copyright>
+    <Authors>Petabridge</Authors>
     <VersionPrefix>0.3.0</VersionPrefix>
     <PackageReleaseNotes>• Fixed bugs</PackageReleaseNotes>
     <PackageIconUrl>
     </PackageIconUrl>
     <PackageProjectUrl>
+      https://github.com/petabridge/Akka.Cluster.Chunking
     </PackageProjectUrl>
     <PackageLicenseUrl>
+      https://github.com/petabridge/Akka.Cluster.Chunking/blob/master/LICENSE
     </PackageLicenseUrl>
+    <PackageIcon>petabridge_logo_square.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
@@ -26,7 +30,8 @@
   <!-- SourceLink support for all Akka.NET projects -->
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
-	<None Include="$(MSBuildThisFileDirectory)\..\README.md" Pack="true" Visible="false" PackagePath="\" />
+     <None Include="$(MSBuildThisFileDirectory)\..\docs\images\petabridge_logo_square.png" Pack="true" Visible="false" PackagePath="\" />
+	  <None Include="$(MSBuildThisFileDirectory)\..\README.md" Pack="true" Visible="false" PackagePath="\" />
   </ItemGroup>
   
   <PropertyGroup>
