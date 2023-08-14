@@ -45,4 +45,6 @@ jobs:
         run: ./build.cmd NuGet
         env:
           Nuget_Key: ${{ secrets.NUGET_KEY }}
+          Sign_Client_Secret: ${{ secrets.SIGN_PASSWORD }}
+          Sign_Client_User: ${{ secrets.SIGN_USERNAME }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
