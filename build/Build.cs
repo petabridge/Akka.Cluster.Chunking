@@ -262,6 +262,7 @@ partial class Build : NukeBuild
         .After(CreateNuget)
         .Before(PublishNuget)
         .OnlyWhenDynamic(() => !SignClientSecret.IsNullOrEmpty() && !SignClientUser.IsNullOrEmpty())
+        .ProceedAfterFailure()
         //.OnlyWhenDynamic(() => !SignClientUser.IsNullOrEmpty())
         .Executes(() =>
         {
