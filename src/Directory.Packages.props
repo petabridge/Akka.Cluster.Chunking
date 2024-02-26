@@ -5,7 +5,7 @@
   <!-- App dependencies -->
   <!-- Test dependencies -->
   <ItemGroup>
-    <PackageVersion Include="Akka.Cluster.Hosting" Version="1.5.15" />
+    <PackageVersion Include="Akka.Cluster.Hosting" Version="1.5.16" />
     <PackageVersion Include="Akka.TestKit.Xunit2" Version="1.5.13" />
     <PackageVersion Include="Grpc.Tools" Version="2.61.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
