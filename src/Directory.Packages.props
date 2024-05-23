@@ -8,7 +8,7 @@
     <PackageVersion Include="Akka.Cluster.Hosting" Version="1.5.19" />
     <PackageVersion Include="Akka.TestKit.Xunit2" Version="1.5.13" />
     <PackageVersion Include="Grpc.Tools" Version="2.61.0" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
     <PackageVersion Include="xunit" Version="2.5.1" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.5.7">
       <PrivateAssets>all</PrivateAssets>
