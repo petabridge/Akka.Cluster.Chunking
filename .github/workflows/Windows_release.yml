@@ -4,33 +4,27 @@ on:
   push:
     tags:
       - '*'
-  pull_request:
-    branches:
-      - main
 
 jobs:
   build-and-sign:
     runs-on: windows-latest
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      SIGNING_USERNAME: ${{ secrets.SIGNING_USERNAME }}
-      SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
-      NUGET_KEY: ${{ secrets.NUGET_KEY }}
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
 
-      - name: Update Release Notes
-        run: powershell ./build.ps1
+      - name: "Update release notes"
+        shell: pwsh
+        run: |
+          ./build.ps1
 
       - name: Build Package
-        run: dotnet pack --configuration ${{ env.BUILD_CONFIGURATION }} -o ./bin/nuget
+        run: dotnet pack /p:PackageVersion=${{ github.ref_name }} -c Release -o ./output
 
       - name: Install SignClient
         run: dotnet tool install -g SignClient --version 1.2.109
@@ -39,21 +33,16 @@ jobs:
         run: |
           echo "Starting the signing process..."
           powershell ./scripts/signPackages.ps1 -ConfigPath "./scripts/signsettings.json" `
-            -UserName "${{ env.SIGNING_USERNAME }}" `
-            -Password "${{ env.SIGNING_PASSWORD }}" `
+            -UserName "${{ secrets.SIGNING_USERNAME }}" `
+            -Password "${{ secrets.SIGNING_PASSWORD }}" `
             -ProductName "Akka.Cluster.Chunking" `
             -ProductDescription "Akka.Cluster.Chunking tools and drivers by Petabridge." `
             -ProductUrl "https://github.com/petabridge/Akka.Cluster.Chunking" `
-            -DirectoryPath "./bin/nuget"
+            -DirectoryPath "./output"
 
 
-      - name: Push to NuGet.org
-        run: |
-          $ErrorActionPreference = "Stop"
-          Get-ChildItem "bin\\nuget\\*.nupkg" -Recurse | ForEach-Object {
-            dotnet nuget push $_.FullName --api-key ${{ env.NUGET_KEY }} --source https://api.nuget.org/v3/index.json
-          }
-        shell: pwsh
+      - name: Push Packages
+        run: dotnet nuget push "output/*.nupkg" -k ${{ secrets.NUGET_KEY }} -s https://api.nuget.org/v3/index.json
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
