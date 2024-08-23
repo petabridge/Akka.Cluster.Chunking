@@ -33,9 +33,48 @@ jobs:
         run: chmod +x ./build.cmd
       - uses: actions/setup-dotnet@v1
         with:
+<<<<<<< Updated upstream
           dotnet-version: 6.0.*
       - name: Cache .nuke/temp, ~/.nuget/packages
         uses: actions/cache@v3
+=======
+          global-json-file: global.json
+
+      - name: "Update release notes"
+        shell: pwsh
+        run: |
+          ./build.ps1
+
+      - name: Build Package
+        run: dotnet pack /p:PackageVersion=${{ github.ref_name }} -c Release -o ./output
+
+      - name: Install SignClient
+        run: dotnet tool install -g SignClient --version 1.2.109
+
+      - name: Sign Artifacts
+        shell: pwsh
+        run: |
+          echo "Starting the signing process..."
+          ./scripts/signPackages.ps1 -ConfigPath "./scripts/signsettings.json" `
+            -UserName "${{ secrets.SIGN_USERNAME }}" `
+            -Password "${{ secrets.SIGN_PASSWORD }}" `
+            -ProductName "Akka.Cluster.Chunking" `
+            -ProductDescription "Akka.Cluster.Chunking tools and drivers by Petabridge." `
+            -ProductUrl "https://github.com/petabridge/Akka.Cluster.Chunking" `
+            -DirectoryPath "./output"
+
+
+      - name: Push Packages
+        shell: pwsh
+        run: |
+            $ErrorActionPreference = "Stop"  # Makes the script stop on errors
+            Get-ChildItem "output\*.nupkg" -Recurse | ForEach-Object {
+              dotnet nuget push $_.FullName --api-key " ${{ secrets.NUGET_KEY }}" --source https://api.nuget.org/v3/index.json
+            }
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+>>>>>>> Stashed changes
         with:
           path: |
             .nuke/temp
