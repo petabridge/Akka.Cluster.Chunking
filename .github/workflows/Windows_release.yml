@@ -34,8 +34,8 @@ jobs:
         run: |
           echo "Starting the signing process..."
           ./scripts/signPackages.ps1 -ConfigPath "./scripts/signsettings.json" `
-            -UserName "${{ secrets.SIGNING_USERNAME }}" `
-            -Password "${{ secrets.SIGNING_PASSWORD }}" `
+            -UserName "${{ secrets.SIGN_USERNAME }}" `
+            -Password "${{ secrets.SIGN_PASSWORD }}" `
             -ProductName "Akka.Cluster.Chunking" `
             -ProductDescription "Akka.Cluster.Chunking tools and drivers by Petabridge." `
             -ProductUrl "https://github.com/petabridge/Akka.Cluster.Chunking" `
