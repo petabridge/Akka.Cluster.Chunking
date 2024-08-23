@@ -1,39 +1,37 @@
-﻿<Project>
+<Project>
   <PropertyGroup>
-    <Copyright>Copyright © 2015-2023 Petabridge, LLC</Copyright>
+    <Copyright>Copyright © 2015-2024 Petabridge, LLC</Copyright>
     <Authors>Petabridge</Authors>
-    <VersionPrefix>0.3.0</VersionPrefix>
-    <PackageReleaseNotes>• Upgraded to [Akka.NET v1.5.27.1](https://github.com/akkadotnet/akka.net/releases/tag/1.5.27.1).</PackageReleaseNotes>
+    <VersionPrefix>
+    </VersionPrefix>
+    <PackageReleaseNotes>
+    </PackageReleaseNotes>
     <PackageIconUrl>
     </PackageIconUrl>
     <PackageProjectUrl>
       https://github.com/petabridge/Akka.Cluster.Chunking
     </PackageProjectUrl>
-    <PackageLicenseUrl>
-      https://github.com/petabridge/Akka.Cluster.Chunking/blob/master/LICENSE
-    </PackageLicenseUrl>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageIcon>petabridge_logo_square.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
-
   <PropertyGroup Label="Build">
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-  
   <PropertyGroup>
     <LibraryFramework>net6.0</LibraryFramework>
-    <TestsNetCoreFramework>net6.0</TestsNetCoreFramework>
+    <TestsNetCoreFramework>net8.0</TestsNetCoreFramework>
   </PropertyGroup>
   <!-- SourceLink support for all Akka.NET projects -->
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
-     <None Include="$(MSBuildThisFileDirectory)\..\docs\images\petabridge_logo_square.png" Pack="true" Visible="false" PackagePath="\" />
-	  <None Include="$(MSBuildThisFileDirectory)\..\README.md" Pack="true" Visible="false" PackagePath="\" />
+    <None Include="$(MSBuildThisFileDirectory)\docs\images\petabridge_logo_square.png" Pack="true" Visible="false" PackagePath="\" />
+    <None Include="$(MSBuildThisFileDirectory)\README.md" Pack="true" Visible="false" PackagePath="\" />
+    <None Include="$(MSBuildThisFileDirectory)\LICENSE.md" Pack="true" Visible="false" PackagePath="\" />
   </ItemGroup>
-  
   <PropertyGroup>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <!-- Optional: Embed source files that are not tracked by the source control manager in the PDB -->
