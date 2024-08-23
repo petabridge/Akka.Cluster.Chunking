@@ -30,9 +30,10 @@ jobs:
         run: dotnet tool install -g SignClient --version 1.2.109
 
       - name: Sign Artifacts
+        shell: pwsh
         run: |
           echo "Starting the signing process..."
-          powershell ./scripts/signPackages.ps1 -ConfigPath "./scripts/signsettings.json" `
+          ./scripts/signPackages.ps1 -ConfigPath "./scripts/signsettings.json" `
             -UserName "${{ secrets.SIGNING_USERNAME }}" `
             -Password "${{ secrets.SIGNING_PASSWORD }}" `
             -ProductName "Akka.Cluster.Chunking" `
