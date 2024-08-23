@@ -16,13 +16,6 @@ jobs:
       SIGNING_USERNAME: ${{ secrets.SIGNING_USERNAME }}
       SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
       NUGET_KEY: ${{ secrets.NUGET_KEY }}
-      SDKBIN_KEY: ${{ secrets.SDKBIN_KEY }}
-      SDKBIN_URI: ${{ secrets.SDKBIN_URI }}
-      GITHUB_CONNECTION_NAME: TurboMqttReleases
-      PROJECT_NAME: TurboMqtt
-      GITHUB_REPOSITORY_NAME: https://github.com/petabridge/TurboMqtt
-      BUILD_CONFIGURATION: Release
-      PRODUCT_URL: https://turbomqtt.org
 
     steps:
       - name: Checkout code
