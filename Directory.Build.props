@@ -28,8 +28,8 @@
   <!-- SourceLink support for all Akka.NET projects -->
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
-    <None Include="$(MSBuildThisFileDirectory)\..\docs\images\petabridge_logo_square.png" Pack="true" Visible="false" PackagePath="\" />
-    <None Include="$(MSBuildThisFileDirectory)\..\README.md" Pack="true" Visible="false" PackagePath="\" />
+    <None Include="$(MSBuildThisFileDirectory)\docs\images\petabridge_logo_square.png" Pack="true" Visible="false" PackagePath="\" />
+    <None Include="$(MSBuildThisFileDirectory)\README.md" Pack="true" Visible="false" PackagePath="\" />
     <None Include="$(MSBuildThisFileDirectory)\LICENSE.md" Pack="true" Visible="false" PackagePath="\" />
   </ItemGroup>
   <PropertyGroup>
