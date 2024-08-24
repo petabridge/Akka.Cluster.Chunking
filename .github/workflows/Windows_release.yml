@@ -65,4 +65,4 @@ jobs:
         with:
             repo-token: ${{ github.token }}
             release-tag: ${{ github.ref_name }}
-            files: 'bin/nuget/*.nupkg'
+            files: 'output/*.nupkg'
