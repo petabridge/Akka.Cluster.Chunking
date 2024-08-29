@@ -22,7 +22,10 @@ public class ChunkingSerializationSpecs : TestKit.Xunit2.TestKit
     [Fact]
     public void ShouldSerializeChunkedDelivery()
     {
-        var msg = new ChunkedDelivery("hello", TestActor);
+        var probe = CreateTestProbe();
+        
+        // make sure the IActorRefs are different
+        var msg = new ChunkedDelivery("hello", TestActor, probe);
         VerifySerialization(msg);
     }
     
