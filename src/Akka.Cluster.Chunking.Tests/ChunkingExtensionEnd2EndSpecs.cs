@@ -18,6 +18,7 @@ namespace Akka.Remote.Chunking.Tests;
 public class ChunkingExtensionEnd2EndSpecs : TestKit.Xunit2.TestKit
 {
     public static readonly Config ClusterConfig = ConfigurationFactory.ParseString(@"
+        akka.loglevel = DEBUG
         akka.actor.provider = cluster
         akka.remote.dot-netty.tcp.port = 0
         akka.remote.dot-netty.tcp.hostname = localhost
@@ -26,7 +27,8 @@ public class ChunkingExtensionEnd2EndSpecs : TestKit.Xunit2.TestKit
     public ChunkingExtensionEnd2EndSpecs(ITestOutputHelper output) : base(ClusterConfig, output: output)
     {
         Sys2 = ActorSystem.Create(Sys.Name, Sys.Settings.Config);
-        Settings = ChunkingManagerSettings.Create(Sys);
+        InitializeLogger(Sys2);
+        Settings = ChunkingManagerSettings.Create(Sys) with { ChunkSize = 1 };
     }
     
     public ActorSystem Sys2 { get; }
