@@ -64,7 +64,7 @@ public class DeliveryManagerMultiNodeSpecs : TestKit.Xunit2.TestKit
         var extended = (ExtendedActorSystem)system;
         
         var settings = ChunkingManagerSettings.Create(system);
-        return extended.SystemActorOf(Props.Create(() => new DeliveryManager(Settings)), ChunkingUtilities.ChunkerActorName);
+        return extended.SystemActorOf(DeliveryManager.CreateProps(Settings), ChunkingUtilities.ChunkerActorName);
     }
     
     [Fact(DisplayName = "Three nodes should deliver message to each-other duplex fashion")]

@@ -79,7 +79,7 @@ public sealed class ChunkingManagerExtension : ExtensionIdProvider<ChunkingManag
         }
         
         var deliverManagerSettings = ChunkingManagerSettings.Create(system);
-        var deliveryManager = system.SystemActorOf(Props.Create(() => new DeliveryManager(deliverManagerSettings)), ChunkerActorName);
+        var deliveryManager = system.SystemActorOf(DeliveryManager.CreateProps(deliverManagerSettings), ChunkerActorName);
         return new ChunkingManager(deliveryManager, deliverManagerSettings);
     }
 }

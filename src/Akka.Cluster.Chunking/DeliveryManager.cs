@@ -54,7 +54,7 @@ public sealed record ChunkingManagerSettings()
     {
         var config = deliveryManagerHocon;
         // parse the config
-        var chunkSize = config.GetByteSize("chunk-size");
+        var chunkSize = config.GetByteSize("chunk-size", 0);
         var requestTimeout = config.GetTimeSpan("request-timeout");
         var outboundQueueCapacity = config.GetInt("outbound-queue-capacity");
         
@@ -72,6 +72,12 @@ public sealed record ChunkingManagerSettings()
 /// </summary>
 internal sealed class DeliveryManager : UntypedActor
 {
+    public static Props CreateProps(ChunkingManagerSettings settings)
+        => Props.Create(() => new DeliveryManager(settings, null, null));
+    
+    internal static Props CreatePropsWithFuzzing(ChunkingManagerSettings settings, Func<object, double>? inboundFuzzer, Func<object, double>? outboundFuzzer)
+        => Props.Create(() => new DeliveryManager(settings, inboundFuzzer, outboundFuzzer));
+    
     private readonly Dictionary<Address, IActorRef> _managersByAddress = new();
     private readonly Dictionary<IActorRef, Address> _addressesByManager = new();
     private readonly Cluster _cluster = Cluster.Get(Context.System);
@@ -79,10 +85,15 @@ internal sealed class DeliveryManager : UntypedActor
     private readonly ChunkingManagerSettings _settings;
     private readonly IRemoteActorRefProvider _refProvider;
 
-    public DeliveryManager(ChunkingManagerSettings settings)
+    private readonly Func<object, double>? _inboundFuzzer;
+    private readonly Func<object, double>? _outboundFuzzer;
+
+    public DeliveryManager(ChunkingManagerSettings settings, Func<object, double>? inboundFuzzer, Func<object, double>? outboundFuzzer)
     {
         _settings = settings;
-        
+        _inboundFuzzer = inboundFuzzer;
+        _outboundFuzzer = outboundFuzzer;
+
         // want to force a cast error here if Akka.Remote isn't enabled
         _refProvider = (IRemoteActorRefProvider)((ExtendedActorSystem)Context.System).Provider;
     }
@@ -176,7 +187,7 @@ internal sealed class DeliveryManager : UntypedActor
         {
             // need to create manager
             var managerRef = Context.ActorOf(Props.Create(() =>
-                    new EndpointDeliveryManager(_cluster.SelfAddress, address, _settings, ComputeRemoteChunkerPath)),
+                    new EndpointDeliveryManager(_cluster.SelfAddress, address, _settings, ComputeRemoteChunkerPath, _inboundFuzzer, _outboundFuzzer)),
                 Uri.EscapeDataString("delivery-manager-" + address));
             _managersByAddress[address] = managerRef;
             _addressesByManager[managerRef] = address;
@@ -206,6 +217,9 @@ internal sealed class EndpointDeliveryManager : UntypedActor, IWithTimers
     
     private readonly Func<Address, ActorPath> _chunkerPathFunc;
 
+    private readonly Func<object, double>? _inboundFuzzer;
+    private readonly Func<object, double>? _outboundFuzzer;
+    
     private class RegisterToRemote
     {
         // make singleton
@@ -213,11 +227,35 @@ internal sealed class EndpointDeliveryManager : UntypedActor, IWithTimers
         private RegisterToRemote() { }
     }
 
-    public EndpointDeliveryManager(Address localAddress, Address remoteAddress, ChunkingManagerSettings settings, Func<Address, ActorPath>? chunkerPath = null)
+    public static Props CreateProps(
+        Address localAddress,
+        Address remoteAddress,
+        ChunkingManagerSettings settings,
+        Func<Address, ActorPath>? chunkerPath = null)
+        => Props.Create(() => new EndpointDeliveryManager(localAddress, remoteAddress, settings, chunkerPath, null, null));
+    
+    public static Props CreatePropsWithFuzzing(
+        Address localAddress,
+        Address remoteAddress,
+        ChunkingManagerSettings settings,
+        Func<Address, ActorPath>? chunkerPath = null,
+        Func<object, double>? inboundFuzzer = null,
+        Func<object, double>? outboundFuzzer = null)
+        => Props.Create(() => new EndpointDeliveryManager(localAddress, remoteAddress, settings, chunkerPath, inboundFuzzer, outboundFuzzer));
+    
+    public EndpointDeliveryManager(
+        Address localAddress,
+        Address remoteAddress,
+        ChunkingManagerSettings settings,
+        Func<Address, ActorPath>? chunkerPath = null,
+        Func<object, double>? inboundFuzzer = null,
+        Func<object, double>? outboundFuzzer = null)
     {
         _localAddress = localAddress;
         _remoteAddress = remoteAddress;
         _settings = settings;
+        _inboundFuzzer = inboundFuzzer;
+        _outboundFuzzer = outboundFuzzer;
         _chunkerPathFunc = chunkerPath ?? ComputeRemoteChunkerPath;
     }
 
@@ -273,12 +311,12 @@ internal sealed class EndpointDeliveryManager : UntypedActor, IWithTimers
             Context.ActorOf(Props.Create(() => new InboundDeliveryHandler(_remoteAddress)), "inbound");
         _outboundDeliveryHandler = Context.ActorOf(Props.Create(() =>
                 new OutboundDeliveryHandler(_remoteAddress, _localAddress, _settings.ChunkSize,
-                    _settings.RequestTimeout, _settings.OutboundQueueCapacity)),
+                    _settings.RequestTimeout, _settings.OutboundQueueCapacity, _outboundFuzzer)),
             "outbound");
 
         var consumerControllerSettings = ConsumerController.Settings.Create(Context.System);
         var consumerControllerProps =
-            ConsumerController.Create<IDeliveryProtocol>(Context, Option<IActorRef>.None,
+            ConsumerController.CreateWithFuzzing<IDeliveryProtocol>(Context, Option<IActorRef>.None, _inboundFuzzer!,
                 consumerControllerSettings);
         
         _consumerController = Context.ActorOf(consumerControllerProps, "consumer-controller");
