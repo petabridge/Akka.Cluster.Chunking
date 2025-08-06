@@ -18,13 +18,14 @@ namespace Akka.Cluster.Chunking;
 public sealed class ChunkingManager : IExtension
 {
     private readonly IActorRef _deliveryManager;
-    
+    private readonly ExtendedActorSystem _system;
     public ChunkingManagerSettings Settings { get; }
 
-    public ChunkingManager(IActorRef deliveryManager, ChunkingManagerSettings settings)
+    public ChunkingManager(IActorRef deliveryManager, ChunkingManagerSettings settings, ExtendedActorSystem system)
     {
         _deliveryManager = deliveryManager;
         Settings = settings;
+        _system = system;
     }
 
     /// <summary>
@@ -49,13 +50,54 @@ public sealed class ChunkingManager : IExtension
             throw new TimeoutException(nack.Message);
         }
     }
-    
+
+    /// <summary>
+    /// Delivers a message to a remote actor, chunking it into fixed size segments, and waits for a response of type TResponse
+    /// to be returned from the remote caller.
+    /// 
+    /// Should only be used for large messages.
+    /// </summary>
+    /// <param name="message">The message to be delivered - must not be null.</param>
+    /// <param name="recipient">The recipient who will receive the message.</param>
+    /// <param name="token">A cancellation token, which can be used to override the default value.</param>
+    /// <typeparam name="TResponse">The type of response message expected by the remote caller.</typeparam>
+    /// <returns>A Task with a TResponse included.</returns>
+    /// <remarks>
+    /// If <see cref="token"/> is left blank, this operation will time out in accordance with the `akka.cluster.chunking.request-timeout` setting x 2,
+    /// which defaults to 5s x 2 - 10s.
+    /// 
+    /// When this <see cref="Task"/> completes it means that the message has been accepted by the underlying Akka.Delivery system and a response
+    /// has been received back. The message has been transmitted and fully processed.
+    /// </remarks>
+    public async Task<TResponse> AskChunked<TResponse>(object message, IActorRef recipient, CancellationToken token = default)
+    {
+        using var cts = token == default ? new CancellationTokenSource(Settings.RequestTimeout * 2) : CancellationTokenSource.CreateLinkedTokenSource(token);
+        var tcs = new TaskCompletionSource<TResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var reg = cts.Token.Register(() => { tcs.TrySetCanceled(); });
+
+        var temporaryActor = _system.Provider.CreateFutureRef<TResponse>(tcs);
+        var path = temporaryActor.Path;
+        try
+        {
+            //The future actor needs to be registered in the temp container
+            _system.Provider.RegisterTempActor(temporaryActor, path);
+            await DeliverChunked(message, recipient, temporaryActor);
+            return await tcs.Task;
+        }
+        finally
+        {
+            // need to clean up temp path afterwards
+            _system.Provider.UnregisterTempActor(path);
+        }
+    }
+
     /// <summary>
     /// Returns the <see cref="ChunkingManager"/> instance for the given <see cref="ActorSystem"/>.
     /// </summary>
     /// <param name="system">The <see cref="ActorSystem"/></param>
     /// <returns>The <see cref="ChunkingManager"/> instance that belongs to this <see cref="ActorSystem"/>.</returns>
-    public static ChunkingManager For(ActorSystem system) => system.WithExtension<ChunkingManager, ChunkingManagerExtension>();
+    public static ChunkingManager For(ActorSystem system) =>
+        system.WithExtension<ChunkingManager, ChunkingManagerExtension>();
 }
 
 /// <summary>
@@ -72,14 +114,14 @@ public sealed class ChunkingManagerExtension : ExtensionIdProvider<ChunkingManag
         {
             system.Settings.InjectTopLevelFallback(ChunkingConfiguration.DefaultHocon);
         }
-        
+
         if (system.Provider is not IClusterActorRefProvider)
         {
             throw new NotSupportedException("Akka.Cluster.Chunking can only be used with Akka.Cluster.");
         }
-        
+
         var deliverManagerSettings = ChunkingManagerSettings.Create(system);
         var deliveryManager = system.SystemActorOf(DeliveryManager.CreateProps(deliverManagerSettings), ChunkerActorName);
-        return new ChunkingManager(deliveryManager, deliverManagerSettings);
+        return new ChunkingManager(deliveryManager, deliverManagerSettings, system);
     }
 }
