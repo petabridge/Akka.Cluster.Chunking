@@ -123,7 +123,25 @@ public class DeliveryManagerFailureSpecs : TestKit.Xunit2.TestKit
         restarted = true;
         // restart Sys2
         var newSys2 = ActorSystem.Create(Sys.Name, Sys.Settings.Config);
-        var dm2New = CreateDeliveryManager(newSys2);
+        var dm2New = CreateDeliveryManager(newSys2, inboundFuzzer: obj =>
+        {
+            if (restarted)
+                return 0.0;
+            
+            if (crashed)
+                return 1.0;
+
+            if (obj is ConsumerController.SequencedMessage<IDeliveryProtocol> { SeqNr: 3 })
+            {
+                Output.WriteLine(">>>>>>>>>> Crashing SYS-2");
+                crashed = true;
+                //Sys2.Terminate();
+                ((ExtendedActorSystem)Sys2).Abort();
+                return 1.0;
+            }
+
+            return 0.0;
+        });
         var probeNew = CreateTestProbe(newSys2);
         var probeRefNew = await GetActorRefOfRemoteRef(Sys, newSys2, probeNew);
         
@@ -186,7 +204,7 @@ public class DeliveryManagerFailureSpecs : TestKit.Xunit2.TestKit
         // big payload, this should be split into chunks
         var largePayload = new string('a', 4000);
         
-        // have Sys message Sys2
+        // have Sys2 message Sys
         var msg = new ChunkedDelivery(largePayload, probeRef, probe2);
         dm2.Tell(msg, probe2);
         probe2.ExpectMsg<DeliveryQueuedAck>(3.Seconds());
@@ -203,9 +221,30 @@ public class DeliveryManagerFailureSpecs : TestKit.Xunit2.TestKit
         restarted = true;
         // restart Sys2
         var newSys2 = ActorSystem.Create(Sys.Name, Sys.Settings.Config);
-        var dm2New = CreateDeliveryManager(newSys2);
-        var probeNew = CreateTestProbe(newSys2);
-        var probeRefNew = await GetActorRefOfRemoteRef(Sys, newSys2, probeNew);
+        var dm2New = CreateDeliveryManager(newSys2, outboundFuzzer: obj =>
+        {
+            if (restarted)
+                return 0.0;
+            
+            if (crashed)
+                return 1.0;
+
+            if (obj.GetType().Name.Contains("SendChunk"))
+                sent++;
+            
+            if(sent > 4)
+            {
+                Output.WriteLine(">>>>>>>>>> Crashing SYS-2");
+                crashed = true;
+                //Sys2.Terminate();
+                ((ExtendedActorSystem)Sys2).Abort();
+                return 1.0;
+            }
+
+            return 0.0;
+        });
+        var probe2New = CreateTestProbe(newSys2);
+        var probeRefNew = await GetActorRefOfRemoteRef(newSys2, Sys, probe);
         
         // rejoin cluster
         await WithinAsync(TimeSpan.FromSeconds(10), async () =>
@@ -215,14 +254,14 @@ public class DeliveryManagerFailureSpecs : TestKit.Xunit2.TestKit
             await AwaitConditionAsync(() => cluster1.State.Members.Count == 3);
         });
 
-        // Resend message, should reach the newly created Sys2
-        var msg2 = new ChunkedDelivery(largePayload, probeRefNew, TestActor);
-        dm1.Tell(msg2, TestActor);
-        ExpectMsg<DeliveryQueuedAck>();
+        // Resend message
+        var msg2 = new ChunkedDelivery(largePayload, probeRefNew, probe2New);
+        dm2New.Tell(msg2, probe2New);
+        probe2New.ExpectMsg<DeliveryQueuedAck>(3.Seconds());
         
-        await probeNew.ExpectMsgAsync(largePayload);
-        probeNew.Reply("ok");
-        await ExpectMsgAsync("ok");
+        await probe.ExpectMsgAsync(largePayload);
+        probe.Reply("ok");
+        await probe2New.ExpectMsgAsync("ok");
     }
     
     
