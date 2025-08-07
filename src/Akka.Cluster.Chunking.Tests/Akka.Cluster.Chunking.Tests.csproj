@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Akka.Cluster.Hosting" VersionOverride="1.5.46" />
     <ProjectReference Include="..\Akka.Cluster.Chunking\Akka.Cluster.Chunking.csproj" />
   </ItemGroup>
 
