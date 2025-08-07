@@ -8,6 +8,7 @@ using Akka.Actor;
 using Akka.Cluster.Chunking;
 using Akka.Cluster.Chunking.Configuration;
 using Akka.Configuration;
+using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -82,21 +83,24 @@ public class DeliveryManagerMultiNodeSpecs : TestKit.Xunit2.TestKit
         var probe3 = CreateTestProbe(Sys3);
         
         // have Sys message Sys2
-        var msg = new ChunkedDelivery("hello", probe2.Ref, probe.Ref);
+        var probe2Ref = await GetActorRefOfRemoteRef(Sys, Sys2, probe2.Ref);
+        var msg = new ChunkedDelivery("hello", probe2Ref, probe.Ref);
         dm1.Tell(msg);
         await probe2.ExpectMsgAsync("hello");
         probe2.Reply("ok");
         await probe.ExpectMsgAsync("ok");
         
         // have Sys2 message Sys3
-        var msg2 = new ChunkedDelivery("hello2", probe3.Ref, probe2.Ref);
+        var probe3Ref = await GetActorRefOfRemoteRef(Sys, Sys3, probe3.Ref);
+        var msg2 = new ChunkedDelivery("hello2", probe3Ref, probe2.Ref);
         dm2.Tell(msg2);
         await probe3.ExpectMsgAsync("hello2");
         probe3.Reply("ok2");
         await probe2.ExpectMsgAsync("ok2");
         
         // have Sys3 message Sys
-        var msg3 = new ChunkedDelivery("hello3", probe.Ref, probe3.Ref);
+        var probeRef = await GetActorRefOfRemoteRef(Sys3, Sys, probe.Ref);
+        var msg3 = new ChunkedDelivery("hello3", probeRef, probe3.Ref);
         dm3.Tell(msg3);
         await probe.ExpectMsgAsync("hello3");
         probe.Reply("ok3");
@@ -118,7 +122,8 @@ public class DeliveryManagerMultiNodeSpecs : TestKit.Xunit2.TestKit
         var probe3 = CreateTestProbe(Sys3);
 
         // have Sys message Sys2
-        var msg = new ChunkedDelivery("hello", probe2.Ref, probe.Ref);
+        var probe2Ref = await GetActorRefOfRemoteRef(Sys, Sys2, probe2.Ref);
+        var msg = new ChunkedDelivery("hello", probe2Ref, probe.Ref);
         dm1.Tell(msg);
         await probe2.ExpectMsgAsync("hello");
         probe2.Reply("ok");
@@ -133,7 +138,8 @@ public class DeliveryManagerMultiNodeSpecs : TestKit.Xunit2.TestKit
         });
 
         // have Sys message Sys3 (validate that we didn't break connections to healthy nodes)
-        var msg2 = new ChunkedDelivery("hello2", probe3.Ref, probe.Ref);
+        var probe3Ref = await GetActorRefOfRemoteRef(Sys, Sys3, probe3.Ref);
+        var msg2 = new ChunkedDelivery("hello2", probe3Ref, probe.Ref);
         dm1.Tell(msg2);
         await probe3.ExpectMsgAsync("hello2");
         probe3.Reply("ok2");
@@ -156,10 +162,21 @@ public class DeliveryManagerMultiNodeSpecs : TestKit.Xunit2.TestKit
         });
 
         // message Sys2 from Sys3
-        var msg3 = new ChunkedDelivery("hello3", probe2New.Ref, probe3.Ref);
+        var probe2NewRef = await GetActorRefOfRemoteRef(Sys, newSys2, probe2New.Ref);
+        var msg3 = new ChunkedDelivery("hello3", probe2NewRef, probe3.Ref);
         dm3.Tell(msg3);
         await probe2New.ExpectMsgAsync("hello3");
         probe2New.Reply("ok3");
         await probe3.ExpectMsgAsync("ok3");
+    }
+    
+    private static async Task<IActorRef> GetActorRefOfRemoteRef(ActorSystem local, ActorSystem remote, IActorRef actor)
+    {
+        var cluster = Cluster.Cluster.Get(remote);
+        var selection = local.ActorSelection(cluster.SelfAddress + actor.Path.ToStringWithoutAddress());
+        var identity = await selection.Ask<ActorIdentity>(new Identify(0));
+        var remoteRef = identity.Subject;
+        remoteRef.Should().NotBeNull();
+        return remoteRef;
     }
 }
