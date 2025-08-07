@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Akka.Cluster" />
     <PackageReference Include="Akka.Cluster.Hosting" />
     <PackageReference Include="Grpc.Tools">
       <PrivateAssets>all</PrivateAssets>

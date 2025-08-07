@@ -31,8 +31,7 @@ public class DeliveryManagerSpecs : TestKit.Xunit2.TestKit
     {
         var extended = (ExtendedActorSystem)system;
         
-        var settings = ChunkingManagerSettings.Create(system);
-        return extended.SystemActorOf(Props.Create(() => new DeliveryManager(Settings)), ChunkingUtilities.ChunkerActorName);
+        return extended.SystemActorOf(DeliveryManager.CreateProps(Settings), ChunkingUtilities.ChunkerActorName);
     }
     
     [Fact(DisplayName = "Should deliver message to local actor")]

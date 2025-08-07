@@ -29,14 +29,16 @@ internal sealed class OutboundDeliveryHandler : UntypedActor, IWithStash
 
     private IActorRef? _producer = null;
     private ProducerController.RequestNext<IDeliveryProtocol>? _requestNext = null;
+    private readonly Func<object, double>? _fuzzingControl;
 
-    public OutboundDeliveryHandler(Address remoteAddress, Address selfAddress, int chunkSize, TimeSpan requestTimeout, int queueCapacity = 20)
+    public OutboundDeliveryHandler(Address remoteAddress, Address selfAddress, int chunkSize, TimeSpan requestTimeout, int queueCapacity = 20, Func<object, double>? fuzzingControl = null)
     {
         _remoteAddress = remoteAddress;
         _chunkSize = chunkSize;
         _selfAddress = selfAddress;
         _requestTimeout = requestTimeout;
         _capacity = queueCapacity;
+        _fuzzingControl = fuzzingControl;
         _pendingDeliveries = new(queueCapacity);
         
         // assert that ChunkSize must be at least 512b
@@ -177,8 +179,8 @@ internal sealed class OutboundDeliveryHandler : UntypedActor, IWithStash
             ChunkLargeMessagesBytes = _chunkSize
         };
         var producerControllerProps =
-            ProducerController.Create<IDeliveryProtocol>(Context.System, producerId, Option<Props>.None,
-                producerControllerSettings);
+            ProducerController.CreateWithFuzzing<IDeliveryProtocol>(Context.System, producerId, _fuzzingControl!,
+                Option<Props>.None, producerControllerSettings);
 
         var producer = Context.ActorOf(producerControllerProps, "producerController");
         Context.Watch(producer);
