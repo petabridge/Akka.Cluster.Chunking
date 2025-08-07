@@ -7,7 +7,7 @@
   <ItemGroup>
     <PackageVersion Include="Akka.Cluster.Hosting" Version="1.5.28" />
     <PackageVersion Include="Akka.TestKit.Xunit2" Version="1.5.46" />
-    <PackageVersion Include="Grpc.Tools" Version="2.69.0" />
+    <PackageVersion Include="Grpc.Tools" Version="2.72.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.3">
