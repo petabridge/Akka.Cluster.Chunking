@@ -1,3 +1,7 @@
+## [0.4.0] / 11 August 2025
+- Upgraded to [Akka.NET v1.5.46](https://github.com/akkadotnet/akka.net/releases/tag/1.5.27.1).
+- Fix a bug that causes `DeliveryManager` to stop working if a node inside a cluster is restarted.
+
 ## [0.3.0] / 23 August 2024
 - Upgraded to [Akka.NET v1.5.27.1](https://github.com/akkadotnet/akka.net/releases/tag/1.5.27.1).
 
