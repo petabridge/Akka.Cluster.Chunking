@@ -78,6 +78,7 @@ internal sealed class DeliveryManager : UntypedActor
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private readonly ChunkingManagerSettings _settings;
     private readonly IRemoteActorRefProvider _refProvider;
+    private readonly Address _selfAddress;
 
     public DeliveryManager(ChunkingManagerSettings settings)
     {
@@ -138,11 +139,12 @@ internal sealed class DeliveryManager : UntypedActor
                 // ignore
                 break;
             }
-            case ClusterEvent.MemberLeft left:
+            case ClusterEvent.MemberRemoved removed:
             {
-                if (_managersByAddress.TryGetValue(left.Member.Address, out var manager))
+                var address = removed.Member.Address;
+                if (_managersByAddress.TryGetValue(address, out var manager))
                 {
-                    _log.Info("Member [{0}] left the cluster - stopping delivery manager for [{1}]", left.Member, left.Member.Address);
+                    _log.Info("Stopping delivery manager for [{0}] - Member removed from the cluster", address);
                     Context.Stop(manager);
                 }
                 break;
@@ -155,7 +157,7 @@ internal sealed class DeliveryManager : UntypedActor
 
     protected override void PreStart()
     {
-        _cluster.Subscribe(Self, typeof(ClusterEvent.MemberLeft));
+        _cluster.Subscribe(Self, typeof(ClusterEvent.MemberRemoved));
     }
 
     private void EnsureManagerAndForward(Address address, IDeliveryProtocol chunkedDelivery)
