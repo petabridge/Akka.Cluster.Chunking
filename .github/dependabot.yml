@@ -6,7 +6,14 @@ updates:
     interval: daily
     time: "11:00"
   open-pull-requests-limit: 10
-  ignore:
-  - dependency-name: Microsoft.NET.Test.Sdk
-    versions:
-    - 16.8.3
+
+- package-ecosystem: "dotnet-sdk"
+  directory: "/"
+  schedule:
+    interval: "weekly"
+    day: "wednesday"
+
+- package-ecosystem: github-actions
+  directory: "/"
+  schedule:
+    interval: daily
