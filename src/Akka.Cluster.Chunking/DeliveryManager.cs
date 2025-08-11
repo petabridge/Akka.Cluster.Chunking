@@ -55,12 +55,15 @@ public sealed record ChunkingManagerSettings()
         var config = deliveryManagerHocon;
         // parse the config
         var chunkSize = config.GetByteSize("chunk-size");
+        if(chunkSize is null)
+            throw new ConfigurationException("akka.cluster.chunking.chunk-size configuration was not defined");
+        
         var requestTimeout = config.GetTimeSpan("request-timeout");
         var outboundQueueCapacity = config.GetInt("outbound-queue-capacity");
         
         return new ChunkingManagerSettings()
         {
-            ChunkSize = (int)chunkSize,
+            ChunkSize = (int)chunkSize.Value,
             RequestTimeout = requestTimeout,
             OutboundQueueCapacity = outboundQueueCapacity
         };

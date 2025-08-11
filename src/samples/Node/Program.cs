@@ -19,7 +19,7 @@ var host = Host.CreateDefaultBuilder(args)
     })
     .ConfigureServices((hostContext, services) =>
     {
-        var akkaConfig = hostContext.Configuration.GetSection("AkkaConfiguration").Get<AkkaConfig>();
+        var akkaConfig = hostContext.Configuration.GetSection("AkkaConfiguration").Get<AkkaConfig>() ?? new AkkaConfig();
         services.AddAkka(akkaConfig.ActorSystemName, builder =>
         {
             builder
