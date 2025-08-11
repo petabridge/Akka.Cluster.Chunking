@@ -139,22 +139,12 @@ internal sealed class DeliveryManager : UntypedActor
                 // ignore
                 break;
             }
-            case ClusterEvent.MemberLeft left:
+            case ClusterEvent.MemberRemoved removed:
             {
-                var address = left.Member.Address;
+                var address = removed.Member.Address;
                 if (_managersByAddress.TryGetValue(address, out var manager))
                 {
-                    _log.Info("Stopping delivery manager for [{0}] - Member left the cluster", address);
-                    Context.Stop(manager);
-                }
-                break;
-            }
-            case ClusterEvent.MemberDowned down:
-            {
-                var address = down.Member.Address;
-                if (_managersByAddress.TryGetValue(address, out var manager))
-                {
-                    _log.Info("Stopping delivery manager for [{0}] - Member downed", address);
+                    _log.Info("Stopping delivery manager for [{0}] - Member removed from the cluster", address);
                     Context.Stop(manager);
                 }
                 break;
@@ -167,7 +157,7 @@ internal sealed class DeliveryManager : UntypedActor
 
     protected override void PreStart()
     {
-        _cluster.Subscribe(Self, typeof(ClusterEvent.MemberLeft), typeof(ClusterEvent.MemberDowned));
+        _cluster.Subscribe(Self, typeof(ClusterEvent.MemberRemoved));
     }
 
     private void EnsureManagerAndForward(Address address, IDeliveryProtocol chunkedDelivery)
