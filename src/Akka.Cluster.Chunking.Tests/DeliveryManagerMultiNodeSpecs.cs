@@ -24,7 +24,9 @@ public class DeliveryManagerMultiNodeSpecs : TestKit.Xunit2.TestKit
     public DeliveryManagerMultiNodeSpecs(ITestOutputHelper output) : base(ClusterConfig, output: output)
     {
         Sys2 = ActorSystem.Create(Sys.Name, Sys.Settings.Config);
+        InitializeLogger(Sys2, "SYS-2: ");
         Sys3 = ActorSystem.Create(Sys.Name, Sys.Settings.Config);
+        InitializeLogger(Sys3, "SYS-3: ");
         Settings = ChunkingManagerSettings.Create(Sys);
     }
     
@@ -107,8 +109,10 @@ public class DeliveryManagerMultiNodeSpecs : TestKit.Xunit2.TestKit
         await probe3.ExpectMsgAsync("ok3");
     }
 
-    [Fact(DisplayName = "Should deliver messages to node after a restart")]
-    public async Task ShouldDeliverMessagesAfterNodeRestart()
+    [InlineData(true)]
+    [InlineData(false)]
+    [Theory(DisplayName = "Should deliver messages to node after a restart")]
+    public async Task ShouldDeliverMessagesAfterNodeRestart(bool cleanShutdown)
     {
         // arrange
         await EnsureClusterFormed();
@@ -129,11 +133,15 @@ public class DeliveryManagerMultiNodeSpecs : TestKit.Xunit2.TestKit
         probe2.Reply("ok");
         await probe.ExpectMsgAsync("ok");
 
+        var port = GetClusterPort(Sys2);
         // shut down Sys2
-        await WithinAsync(TimeSpan.FromSeconds(10), async () =>
+        await WithinAsync(TimeSpan.FromSeconds(30), async () =>
         {
             var cluster1 = Akka.Cluster.Cluster.Get(Sys);
-            Shutdown(Sys2);
+            if(cleanShutdown)
+                Shutdown(Sys2);
+            else
+                ((ExtendedActorSystem)Sys2).Abort();
             await AwaitConditionAsync(() => cluster1.State.Members.Count == 2);
         });
 
@@ -146,12 +154,15 @@ public class DeliveryManagerMultiNodeSpecs : TestKit.Xunit2.TestKit
         await probe.ExpectMsgAsync("ok2");
 
         // restart Sys2
-        var newSys2 = ActorSystem.Create(Sys.Name, Sys.Settings.Config);
+        var config = ConfigurationFactory.ParseString($"akka.remote.dot-netty.tcp.port = {port}")
+            .WithFallback(Sys.Settings.Config);
+        var newSys2 = ActorSystem.Create(Sys.Name, config);
+        InitializeLogger(newSys2, "SYS-2-2: ");
         var dm2New = CreateDeliveryManager(newSys2);
         var probe2New = CreateTestProbe(newSys2);
 
         // rejoin cluster
-        await WithinAsync(TimeSpan.FromSeconds(10), async () =>
+        await WithinAsync(TimeSpan.FromSeconds(30), async () =>
         {
             var cluster1 = Akka.Cluster.Cluster.Get(Sys);
             var cluster2 = Akka.Cluster.Cluster.Get(newSys2);
@@ -161,13 +172,19 @@ public class DeliveryManagerMultiNodeSpecs : TestKit.Xunit2.TestKit
             await AwaitConditionAsync(() => cluster1.State.Members.Count == 3);
         });
 
-        // message Sys2 from Sys3
+        // have Sys message Sys2
         var probe2NewRef = await GetActorRefOfRemoteRef(Sys, newSys2, probe2New.Ref);
-        var msg3 = new ChunkedDelivery("hello3", probe2NewRef, probe3.Ref);
-        dm3.Tell(msg3);
+        msg = new ChunkedDelivery("hello3", probe2NewRef, probe.Ref);
+        dm1.Tell(msg);
         await probe2New.ExpectMsgAsync("hello3");
-        probe2New.Reply("ok3");
-        await probe3.ExpectMsgAsync("ok3");
+        probe2New.Reply("ok");
+        await probe.ExpectMsgAsync("ok");
+    }
+    
+    private static int GetClusterPort(ActorSystem system)
+    {
+        var cluster = Cluster.Cluster.Get(system);
+        return cluster.SelfAddress.Port!.Value;
     }
     
     private static async Task<IActorRef> GetActorRefOfRemoteRef(ActorSystem local, ActorSystem remote, IActorRef actor)
