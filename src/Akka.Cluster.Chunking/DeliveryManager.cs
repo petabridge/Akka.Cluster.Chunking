@@ -81,7 +81,6 @@ internal sealed class DeliveryManager : UntypedActor
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private readonly ChunkingManagerSettings _settings;
     private readonly IRemoteActorRefProvider _refProvider;
-    private readonly Address _selfAddress;
 
     public DeliveryManager(ChunkingManagerSettings settings)
     {
